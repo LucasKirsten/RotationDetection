@@ -224,8 +224,8 @@ def WriterXMLFiles(filename, path, gtbox_label_list, w, h, d):
 
 
 if __name__ == '__main__':
-    src_xml_path = '/data/HRSC2016/HRSC2016/Test/Annotations'
-    xml_path = '/data/HRSC2016/HRSC2016/Test/xmls'
+    src_xml_path = '/datasets/dataset/HRSC2016/HRSC2016/HRSC2016/Train/Annotations'
+    xml_path = '/datasets/dataset/HRSC2016/HRSC2016/HRSC2016/Train/xmls'
 
     src_xmls = os.listdir(src_xml_path)
 

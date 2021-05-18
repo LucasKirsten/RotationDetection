@@ -30,10 +30,10 @@ class TestHRSC2016GWD(TestHRSC2016):
         all_boxes_r = self.eval_with_plac(img_dir=self.args.img_dir, det_net=gwd,
                                           image_ext=self.args.image_ext)
 
-        # with open(cfgs.VERSION + '_detections_r.pkl', 'rb') as f2:
-        #     all_boxes_r = pickle.load(f2)
+        #with open(cfgs.VERSION + '_detections_r.pkl', 'rb') as f2:
+        #    all_boxes_r = pickle.load(f2)
         #
-        #     print(len(all_boxes_r))
+        #    print(len(all_boxes_r))
 
         imgs = os.listdir(self.args.img_dir)
         real_test_imgname_list = [i.split(self.args.image_ext)[0] for i in imgs]

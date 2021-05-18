@@ -135,7 +135,7 @@ class EVAL(object):
     return ap
 
   def voc_eval(self, detpath, annopath, test_imgid_list, cls_name, ovthresh=0.5,
-               use_07_metric=False, use_diff=False):
+               use_07_metric=False, use_diff=True):
     '''
 
     :param detpath:
@@ -241,11 +241,11 @@ class EVAL(object):
               fp[d] = 1.
         else:
           fp[d] = 1.
-
+    
     # 4. get recall, precison and AP
     fp = np.cumsum(fp)
     tp = np.cumsum(tp)
-    rec = tp / float(num_pos)
+    rec = tp / (float(num_pos) + 1e-6)
     # avoid divide by zero in case the first detection matches a difficult
     # ground truth
     prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)

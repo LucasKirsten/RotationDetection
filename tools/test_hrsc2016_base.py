@@ -94,7 +94,9 @@ class TestHRSC2016(object):
             sess.run(init_op)
             if not restorer is None:
                 restorer.restore(sess, restore_ckpt)
-                print('restore model')
+                print('\n'+'*'*10 + '\nRestored model\n' + restore_ckpt + '\n'+'*'*10)
+            else:
+                raise Exception('Could not find any saved model!')
 
             all_boxes_r = []
             imgs = os.listdir(img_dir)

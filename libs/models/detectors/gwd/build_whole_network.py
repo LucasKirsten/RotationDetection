@@ -71,6 +71,11 @@ class DetectionNetworkGWD(DetectionNetworkBase):
                     reg_loss = self.losses.wasserstein_distance_loss(rpn_box_pred, anchor_states,
                                                                      target_boxes, anchors, tau=self.cfgs.GWD_TAU,
                                                                      func=self.cfgs.GWD_FUNC)
+                    
+                elif self.cfgs.REG_LOSS_MODE == 3:
+                    print('\n' + '*'*10 + '\nUsing ProbIoU\n' + '*'*10)
+                    reg_loss = self.losses.probiou(rpn_box_pred, anchor_states, target_boxes, anchors)
+                    
                 else:
                     reg_loss = self.losses.smooth_l1_loss(target_delta, rpn_box_pred, anchor_states)
 
