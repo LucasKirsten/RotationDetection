@@ -210,6 +210,31 @@ class LabelMap(object):
                 'train': 9,
                 'rider': 10
             }
+        
+        elif self.cfgs.DATASET_NAME == 'COCO_VOC':
+            name_label_map = {
+                'airplane': 0,
+                'bicycle': 1,
+                'bird': 2,
+                'boat': 3,
+                'bottle': 4,
+                'bus': 5,
+                'car': 6,
+                'cat': 7,
+                'chair': 8,
+                'cow': 9,
+                'dining': 10,
+                'dog': 11,
+                'horse': 12,
+                'motorcycle': 13,
+                'person': 14,
+                'potted': 15,
+                'sheep': 16,
+                'sofa': 17,
+                'train': 18,
+                'tv': 19
+        }
+        
         else:
             name_label_map = {}
             assert 'please set label dict!'

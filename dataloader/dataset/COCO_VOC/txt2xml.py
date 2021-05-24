@@ -6,6 +6,7 @@ import numpy as np
 import csv
 import cv2
 import codecs
+from tqdm import tqdm
 
 
 def WriterXMLFiles(filename, path, box_list, labels, w, h, d):
@@ -111,27 +112,28 @@ def load_annoataion(txt_path):
     lines = fr.readlines()
 
     for line in lines:
-        b = line.strip('\ufeff').strip('\xef\xbb\xbf').strip('$').split(',')[:8]
-        line = list(map(int, b))
+        line = line.replace('\n', '')
+        b = line.split(' ')
+        line = list(map(int, b[:-1]))
         boxes.append(line)
-        labels.append('text')
+        labels.append(b[-1])
 
     return np.array(boxes), np.array(labels)
 
 
 if __name__ == "__main__":
-    txt_path = '/datasets/dataset/COCO_obb/val/labels'
-    xml_path = '/datasets/dataset/COCO_obb/val/xmls'
-    img_path = '/datasets/dataset/COCO_obb/val/images'
+    txt_path = '/datasets/dataset/COCO_VOC/train/labels'
+    xml_path = '/datasets/dataset/COCO_VOC/train/xmls'
+    img_path = '/datasets/dataset/COCO_VOC/train/images'
     print(os.path.exists(txt_path))
     txts = os.listdir(txt_path)
-    for count, t in enumerate(txts):
+    for count, t in enumerate(tqdm(txts)):
+        if not '.txt' in t:
+            continue
+        
         boxes, labels = load_annoataion(os.path.join(txt_path, t))
         xml_name = t.replace('.txt', '.xml')
         img_name = t.replace('.txt', '.jpg')
         img = cv2.imread(os.path.join(img_path, img_name.split('gt_')[-1]))
         h, w, d = img.shape
         WriterXMLFiles(xml_name.split('gt_')[-1], xml_path, boxes, labels, w, h, d)
-
-        if count % 1000 == 0:
-            print(count)

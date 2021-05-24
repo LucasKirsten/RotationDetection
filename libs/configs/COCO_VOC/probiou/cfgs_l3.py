@@ -9,7 +9,7 @@ from libs.configs._base_.schedules.schedule_1x import *
 from dataloader.pretrained_weights.pretrain_zoo import PretrainModelZoo
 
 # schedule
-BATCH_SIZE = 1
+BATCH_SIZE = 12
 GPU_GROUP = '0,1'
 NUM_GPU = len(GPU_GROUP.strip().split(','))
 LR = 1e-3

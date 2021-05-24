@@ -158,6 +158,8 @@ class DetectionNetworkBase(object):
 
     def get_restorer(self):
         checkpoint_path = tf.train.latest_checkpoint(os.path.join(self.cfgs.TRAINED_CKPT, self.cfgs.VERSION))
+        if checkpoint_path:
+            print('\n\n'+'*'*30 + '\n CHECKPOINT PATH: ' + checkpoint_path + '\n\n'+'*'*30)
         if checkpoint_path is not None:
             if self.cfgs.RESTORE_FROM_RPN:
                 print('___restore from rpn___')

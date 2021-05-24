@@ -103,7 +103,7 @@ class LossGWD(Loss):
         return tf.reduce_sum(wasserstein_loss) / normalizer
 
     ''' ProbIoU '''
-    def probiou(self, preds, anchor_state, target_boxes, anchors,
+    def probiou(self, mode, preds, anchor_state, target_boxes, anchors,
                       is_refine=False):
         if self.cfgs.METHOD == 'H' and not is_refine:
             x_c = (anchors[:, 2] + anchors[:, 0]) / 2
@@ -174,8 +174,12 @@ class LossGWD(Loss):
         Bd = tf.clip_by_value(Bd, EPS, 100.)
 
         l1 = tf.math.sqrt(1 - tf.math.exp(-Bd) + EPS)
-        l2 = tf.math.pow(l1, 2.)
-        probiou = - tf.math.log(1. - l2 + EPS)
+        
+        if mode=='l3':
+            l2 = tf.math.pow(l1, 2.)
+            probiou = - tf.math.log(1. - l2 + EPS)
+        else:
+            probiou = l1
 
         normalizer = tf.stop_gradient(tf.where(tf.equal(anchor_state, 1)))
         normalizer = tf.cast(tf.shape(normalizer)[0], tf.float32)

@@ -12,13 +12,14 @@ sys.path.append('../../')
 
 from libs.label_name_dict.label_dict import LabelMap
 from utils.tools import makedirs, view_bar
+from tqdm import tqdm
 from libs.configs import cfgs
 
 tf.app.flags.DEFINE_string('VOC_dir', '/data/dataset/DOTA2.0/crop/trainval/', 'Voc dir')
 tf.app.flags.DEFINE_string('xml_dir', 'labeltxt', 'xml dir')
 tf.app.flags.DEFINE_string('image_dir', 'images', 'image dir')
 tf.app.flags.DEFINE_string('save_name', 'train', 'save name')
-tf.app.flags.DEFINE_string('save_dir', '../tfrecord/', 'save name')
+tf.app.flags.DEFINE_string('save_dir', '/datasets/tfrecord/', 'save name')
 tf.app.flags.DEFINE_string('img_format', '.png', 'format of image')
 tf.app.flags.DEFINE_string('dataset', 'DOTA2.0', 'dataset')
 FLAGS = tf.app.flags.FLAGS
@@ -82,8 +83,8 @@ def convert_pascal_to_tfrecord():
 
     # writer_options = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.ZLIB)
     # writer = tf.python_io.TFRecordWriter(path=save_path, options=writer_options)
-    writer = tf.python_io.TFRecordWriter(path=save_path)
-    for count, xml in enumerate(glob.glob(xml_path + '/*.xml')):
+    writer = tf.python_io.TFRecordWriter(path=save_path) #, options=tf.io.TFRecordOptions(compression_type='GZIP')
+    for count, xml in enumerate(tqdm(glob.glob(xml_path + '/*.xml'))):
 
         img_name = xml.split('/')[-1].split('.')[0] + FLAGS.img_format
         img_path = image_path + '/' + img_name
@@ -114,7 +115,7 @@ def convert_pascal_to_tfrecord():
 
         writer.write(example.SerializeToString())
 
-        view_bar('Conversion progress', count + 1, len(glob.glob(xml_path + '/*.xml')))
+        #view_bar('Conversion progress', count + 1, len(glob.glob(xml_path + '/*.xml')))
 
     print('\nConversion is complete!')
     writer.close()
