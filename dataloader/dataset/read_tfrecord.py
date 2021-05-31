@@ -105,9 +105,9 @@ class ReadTFRecord(object):
             raise ValueError('dataSet name must be in {}'.format(valid_dataset))
 
         if is_training:
-            pattern = os.path.join('/data/public/pepper-datasets/tfrecord', dataset_name + ('_train*' if 'MLT' not in dataset_name else '_*'))
+            pattern = os.path.join('/kaggle/input/hrsc2016-train', dataset_name + ('_train*' if 'MLT' not in dataset_name else '_*'))
         else:
-            pattern = os.path.join('/data/public/pepper-datasets/tfrecord', dataset_name + '_test*')
+            pattern = os.path.join('/kaggle/input/hrsc2016-test', dataset_name + '_test*')
 
         print('tfrecord path is -->', os.path.abspath(pattern))
 
