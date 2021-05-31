@@ -6,8 +6,8 @@ from __future__ import division
 
 import os
 import sys
-import tensorflow as tf
-import tensorflow.contrib.slim as slim
+import tensorflow.compat.v1 as tf
+import tensorflow..compat.v1.contrib.slim as slim
 import numpy as np
 sys.path.append("../../")
 
