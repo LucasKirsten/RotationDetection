@@ -224,12 +224,15 @@ def WriterXMLFiles(filename, path, gtbox_label_list, w, h, d):
 
 
 if __name__ == '__main__':
-    src_xml_path = '/datasets/dataset/HRSC2016/HRSC2016/HRSC2016/Train/Annotations'
-    xml_path = '/datasets/dataset/HRSC2016/HRSC2016/HRSC2016/Train/xmls'
+    src_xml_path = '/datasets/HRSC2016/HRSC2016/Test/Annotations'
+    xml_path = '/datasets/HRSC2016/HRSC2016/Test/xmls'
 
     src_xmls = os.listdir(src_xml_path)
 
     for x in src_xmls:
+        if not '.xml' in x:
+            continue
+        
         x_path = os.path.join(src_xml_path, x)
         img_height, img_width, gtbox_label = read_xml_gtbox_and_label(x_path)
         WriterXMLFiles(x, xml_path, gtbox_label, img_width, img_height, 3)

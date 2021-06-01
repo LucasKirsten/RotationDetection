@@ -79,7 +79,7 @@ class LabelMap(object):
         elif self.cfgs.DATASET_NAME == 'HRSC2016':
             name_label_map = {
                 'back_ground': 0,
-                'roundabout': 1
+                'ship': 1
             }
         elif self.cfgs.DATASET_NAME.startswith('OHD-SJTU-ALL'):
             name_label_map = {

@@ -253,7 +253,7 @@ class EVAL(object):
 
     return rec, prec, ap
 
-  def do_python_eval(self, test_imgid_list, test_annotation_path):
+  def do_python_eval(self, test_imgid_list, test_annotation_path, ovthreshold):
     # import matplotlib.colors as colors
     # import matplotlib.pyplot as plt
 
@@ -261,12 +261,13 @@ class EVAL(object):
     for cls, index in self.name_label_map.items():
       if cls == 'back_ground':
         continue
+        
       recall, precision, AP = self.voc_eval(detpath=self.cfgs.EVALUATE_R_DIR,
                                             test_imgid_list=test_imgid_list,
                                             cls_name=cls,
                                             annopath=test_annotation_path,
                                             use_07_metric=self.cfgs.USE_07_METRIC,
-                                            ovthresh=self.cfgs.EVAL_THRESHOLD)
+                                            ovthresh=ovthreshold)
       AP_list += [AP]
       print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, recall[-1], precision[-1], AP))
       # print("{}_ap: {}".format(cls, AP))
@@ -290,6 +291,7 @@ class EVAL(object):
     # plt.savefig('./PR_R.png')
 
     print("mAP is : {}".format(np.mean(AP_list)))
+    return np.mean(AP_list)
 
   def voc_evaluate_detections(self, all_boxes, test_imgid_list, test_annotation_path):
     '''
@@ -303,5 +305,13 @@ class EVAL(object):
 
     self.write_voc_results_file(all_boxes, test_imgid_list=test_imgid_list,
                                 det_save_dir=self.cfgs.EVALUATE_R_DIR)
-    self.do_python_eval(test_imgid_list, test_annotation_path)
+    
+    mAps = []
+    for th in np.arange(0.5,1.0,0.05):
+        print('Threshold: ', th)
+        ap = self.do_python_eval(test_imgid_list, test_annotation_path, ovthreshold=th)
+        mAps.append(ap)
+        print('\n')
+        
+    print('mAP50:95 : ', np.mean(mAps))
 
