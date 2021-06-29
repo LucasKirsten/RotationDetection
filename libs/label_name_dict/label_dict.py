@@ -234,6 +234,9 @@ class LabelMap(object):
                 'train': 18,
                 'tv': 19
         }
+            
+        elif self.cfgs.DATASET_NAME == 'UFRGS_CELL':
+            name_label_map = {'normal_cell':0, 'mitoses':1}
         
         else:
             name_label_map = {}
