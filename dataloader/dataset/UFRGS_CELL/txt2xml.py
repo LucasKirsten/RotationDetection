@@ -134,9 +134,9 @@ def load_annoataion(p):
     return np.array(text_polys, dtype=np.int32), np.array(text_tags, dtype=np.str)
 
 if __name__ == "__main__":
-    txt_path = '/datasets/msc/UFRGS_CELL/crop/train/labeltxt'
-    xml_path = '/datasets/msc/UFRGS_CELL/crop/train/xml_rotdet'
-    img_path = '/datasets/msc/UFRGS_CELL/crop/train/images'
+    txt_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/crop/labeltxt'
+    xml_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/crop/xml_rotdet'
+    img_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/crop/images'
     
     os.makedirs(xml_path, exist_ok=True)
     txts = os.listdir(txt_path)

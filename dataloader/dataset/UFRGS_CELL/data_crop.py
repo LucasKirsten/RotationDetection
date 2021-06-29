@@ -123,7 +123,7 @@ def save_to_xml(save_path, im_height, im_width, objects_axis, label_name):
     f.close()
 
 
-class_list = ['cell']
+class_list = ['normal_cell', 'mitoses']
 
 def format_label(txt_list):
     format_data = []
@@ -198,8 +198,10 @@ def clip_image(file_idx, image, boxes_all, width, height, stride_w, stride_h):
 
 
 print('class_list', len(class_list))
-raw_data = '/datasets/msc/UFRGS_CELL/train'
-save_dir = '/datasets/msc/UFRGS_CELL/crop/train/'
+# change here
+path_root = '/workdir/datasets/msc/UFRGS_CELL_2classes/train'
+raw_data = path_root
+save_dir = os.path.join(os.path.split(path_root)[0], 'crop')
 
 os.makedirs(save_dir, exist_ok=True)
 raw_images_dir = os.path.join(raw_data, 'imgs')
