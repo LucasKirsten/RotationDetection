@@ -3,33 +3,45 @@ import numpy as np
 import pandas as pd
 from numba import jit
 
-def get_pts(path_ann):
-    ann = open(path_ann, 'r').read()
-    ann = ann.split('\n')
+# get OBB points from annotations
+def parse_ann(ann):
     
-    anns = []
+    anns_boxes  = []
+    anns_labels = []
     for box in ann:
-        an = list(map(float, box.split(',')[1:-2]))
+        an = list(map(float, box.split(',')[1:-1]))
+        lb = box.split(',')[-1]
         if len(an)>1:
-            anns.append(np.array([
+            anns_boxes.append(np.array([
                 [an[0],an[4]],
                 [an[1],an[5]],
                 [an[2],an[6]],
                 [an[3],an[7]]]))
-    return np.array(anns)
+            lb = 'mitoses' if 'RoundCell' in lb else 'normal_cell'
+            anns_labels.append(lb)
+    return np.array(anns_boxes), anns_labels
 
+# get all annotations
 def get_ann(path_annotations):
     
     annotations = {}
     for path in path_annotations:
-        boxes = get_pts(path)
-        annotations[path] = boxes
+        
+        # open annotation path
+        ann = open(path, 'r').read()
+        ann = ann.split('\n')
+        
+        # get annotations
+        boxes, labels = parse_ann(ann)
+        
+        annotations[path] = {'boxes':boxes, 'labels':labels}
         
     return annotations
 
 def get_csv(path_annotations):
     
-    annotations = get_ann(path_annotations)
+    annotations = _get_ann(path_annotations)
+    print(annotations)
     
     csv_ann = {'path':[], 'x1':[], 'y1':[], 'x2':[], 'y2':[], 'x3':[], 'y3':[], 'x4':[], 'y4':[]}
     for img_name in annotations:

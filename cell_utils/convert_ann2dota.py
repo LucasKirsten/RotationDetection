@@ -25,6 +25,7 @@ def _parse_ann(ann):
                 [an[1],an[5]],
                 [an[2],an[6]],
                 [an[3],an[7]]]))
+            lb = 'mitoses' if 'RoundCell' in lb else 'normal_cell'
             anns_labels.append(lb)
     return np.array(anns_boxes), anns_labels
 

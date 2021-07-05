@@ -211,7 +211,7 @@ class TestUFRGSCELL(object):
                                                                                method=1,
                                                                                in_graph=True)
 
-                    save_dir = os.path.join('test_hrsc', self.cfgs.VERSION, 'hrsc2016_img_vis')
+                    save_dir = os.path.join('test_ufrgscell', self.cfgs.VERSION, 'ufrgscell_img_vis')
                     tools.makedirs(save_dir)
 
                     cv2.imwrite(save_dir + '/{}.jpg'.format(a_img_name),

@@ -198,20 +198,20 @@ def adiou_rotate_calculate(boxes1, boxes2):
 if __name__ == '__main__':
 
     boxes1 = np.array([
-        [150, 150, 1e-15, 5, -45],
+        [150, 150, 10, 5, -45],
     ], np.float32)
 
     boxes2 = np.array([
-        [50, 50, 5, 1e-15, -45]], np.float32)
+        [150, 150, 10, 5, 0]], np.float32)
 
-    from libs.box_utils.overlaps_cython.overlaps_cython import rbox_overlaps
+    #from libs.box_utils.overlaps_cython.overlaps_cython import rbox_overlaps
 
-    overlaps = rbox_overlaps(np.array(boxes1, dtype=np.float32),
+    overlaps = iou_rotate_calculate2(np.array(boxes1, dtype=np.float32),
                              np.array(boxes2, dtype=np.float32))
 
     print(overlaps)
 
-    print(rbbx_overlaps(boxes1, boxes2, 3))
+    #print(rbbx_overlaps(boxes1, boxes2, 3))
 
 
 

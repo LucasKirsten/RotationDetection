@@ -106,7 +106,7 @@ def WriterXMLFiles(filename, path, box_list, labels, w, h, d):
     fp.close()
 
 
-def load_annoataion(p):
+def load_annoataion(p, h, w):
     '''
     load annotation from the text file
     :param p:
@@ -120,23 +120,23 @@ def load_annoataion(p):
         reader = csv.reader(f)
         for i,line in enumerate(reader):
             if i<2: continue # skip header
-            
+                
             # strip BOM. \ufeff for python3,  \xef\xbb\bf for python2
             line = [i.strip('\ufeff').strip('\xef\xbb\xbf') for i in line]
             line = line[0].split(' ')
-
-            x1, y1, x2, y2, x3, y3, x4, y4 = list(map(float, line[:8]))
+            
+            x1, y1, x2, y2, x3, y3, x4, y4 = list(map(float, line[:-2]))
             label = line[-2]
             
             text_polys.append([x1, y1, x2, y2, x3, y3, x4, y4])
             text_tags.append(label)
-
+    
     return np.array(text_polys, dtype=np.int32), np.array(text_tags, dtype=np.str)
 
 if __name__ == "__main__":
-    txt_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/crop/labeltxt'
-    xml_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/crop/xml_rotdet'
-    img_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/crop/images'
+    txt_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/test/annotations/dota_format'
+    xml_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/test/xml_rotdet'
+    img_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/test/imgs'
     
     os.makedirs(xml_path, exist_ok=True)
     txts = os.listdir(txt_path)
@@ -144,18 +144,11 @@ if __name__ == "__main__":
         if '.txt' not in t:
             continue
         
-        boxes, labels = load_annoataion(os.path.join(txt_path, t))
         xml_name = t.replace('.txt', '.xml')
         img_name = t.replace('.txt', '.jpg')
         path_img = os.path.join(img_path, img_name)
-        if not os.path.exists(path_img):
-            img_name = t.replace('.txt', '.png')
-            path_img = os.path.join(img_path, img_name)
         img = cv2.imread(path_img)
-        try:
-            h, w, d = img.shape
-        except:
-            print('Error reading image: ', os.path.join(img_path, img_name))
-            continue
+        h, w, d = img.shape
+        boxes, labels = load_annoataion(os.path.join(txt_path, t), h, w)
         #filename, path, box_list, w, h, d
         WriterXMLFiles(xml_name, xml_path, boxes, labels, w, h, d)

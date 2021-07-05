@@ -14,6 +14,7 @@ import pickle
 import numpy as np
 
 from libs.utils import iou_rotate
+from libs.utils.crj_rotated_iou import rotated_iou
 from libs.utils import coordinate_convert
 from utils import tools
 from libs.label_name_dict.label_dict import LabelMap
@@ -97,7 +98,7 @@ class EVAL(object):
       rbox = coordinate_convert.backward_convert(rbox, with_label=False)
       obj_struct['bbox'] = rbox
       objects.append(obj_struct)
-
+    
     return objects
 
 
@@ -147,6 +148,7 @@ class EVAL(object):
     :param use_diff:
     :return:
     '''
+    
     # 1. parse xml to get gtboxes
 
     # read list of images
@@ -198,14 +200,14 @@ class EVAL(object):
       sorted_scores = np.sort(-confidence)
       BB = BB[sorted_ind, :]
       image_ids = [image_ids[x] for x in sorted_ind]  #reorder the img_name
-
+        
       # go down dets and mark TPs and FPs
       for d in range(nd):
         R = class_recs[image_ids[d]]  # img_id is img_name
         bb = BB[d, :].astype(float)
         ovmax = -np.inf
         BBGT = R['bbox'].astype(float)
-
+        
         if BBGT.size > 0:
           # compute overlaps
           # intersection
@@ -225,13 +227,11 @@ class EVAL(object):
           # overlaps = inters / uni
           overlaps = []
           for i in range(len(BBGT)):
-            overlap = iou_rotate.iou_rotate_calculate1(np.array([bb]),
-                                                        BBGT[i],
-                                                        use_gpu=False)[0]
+            overlap = iou_rotate.iou_rotate_calculate2(np.array([bb]), BBGT[i])[0]
             overlaps.append(overlap)
           ovmax = np.max(overlaps)
           jmax = np.argmax(overlaps)
-
+        
         if ovmax > ovthresh:
           if not R['difficult'][jmax]:
             if not R['det'][jmax]:
