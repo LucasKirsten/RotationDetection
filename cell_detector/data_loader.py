@@ -1,8 +1,17 @@
+import sys
+sys.path.append('../')
+
 import os
 import cv2
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+
+import configs as cfgs
+from dataloader.dataset.image_augmentation import ImageAugmentation
+
+image_preprocess = ImageAugmentation(cfgs)
+AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 def _read_data(serialized_example):
     # read TF records data format
@@ -28,14 +37,36 @@ def _read_data(serialized_example):
     gtboxes_and_label = tf.reshape(gtboxes_and_label, [-1, 9])
     
     num_objects = tf.cast(features['num_objects'], tf.int32)
-    return img, gtboxes_and_label
+    return tf.cast(img, 'float32'), gtboxes_and_label
+
+def _augment_data(img, gtboxes_and_label):
+    if cfgs.RGB2GRAY:
+        img = image_preprocess.random_rgb2gray(img_tensor=img, gtboxes_and_label=gtboxes_and_label)
+
+    if cfgs.IMG_ROTATE:
+        img, gtboxes_and_label = image_preprocess.random_rotate_img(img_tensor=img,
+                                                                    gtboxes_and_label=gtboxes_and_label)
+        
+    img, gtboxes_and_label, img_h, img_w = image_preprocess.short_side_resize(img_tensor=img,
+                                                                              gtboxes_and_label=gtboxes_and_label,
+                                                                              target_shortside_len=cfgs.IMG_SHORT_SIDE_LEN,
+                                                                              length_limitation=cfgs.IMG_MAX_LENGTH)
+
+    if cfgs.HORIZONTAL_FLIP:
+        img, gtboxes_and_label = image_preprocess.random_flip_left_right(img_tensor=img,
+                                                                         gtboxes_and_label=gtboxes_and_label)
+    if cfgs.VERTICAL_FLIP:
+        img, gtboxes_and_label = image_preprocess.random_flip_up_down(img_tensor=img,
+                                                                      gtboxes_and_label=gtboxes_and_label)
+        
+    return tf.cast(img, 'float32'), gtboxes_and_label
 
 def _get_gt(class_centers, regres_centers, reduce=16):
 
     # placeholder for placing the centers
     shape = class_centers.shape[0]//reduce, class_centers.shape[1]//reduce
-    gt_regression = np.zeros(shape=(shape[0], shape[1], REGRESSIONS))
-    gt_classification = np.zeros(shape=(shape[0], shape[1], CLASSES))
+    gt_regression = np.zeros(shape=(shape[0], shape[1], cfgs.REGRESSIONS))
+    gt_classification = np.zeros(shape=(shape[0], shape[1], cfgs.CLASSES))
 
     # first map all unique center points and save the conflits
     conflits = []
@@ -127,15 +158,23 @@ def _get_gt(class_centers, regres_centers, reduce=16):
                         break
                 if found:
                     break
-                    
+    
+    # labels normalization
+    gt_regression[...,0] /= 32 # cx
+    gt_regression[...,1] /= 32 # cy
+    gt_regression[...,2] /= cfgs.IMG_MAX_LENGTH # w
+    gt_regression[...,3] /= cfgs.IMG_MAX_LENGTH # h
+    gt_regression[...,4] /= -90 # angle
+    
     return gt_regression, gt_classification
 
 def _adjust_data(img, labels):
+    
     # norm image
-    img = tf.cast(img, 'float32')/127.5 - 1
+    img = (tf.cast(img, 'float32')-cfgs.PIXEL_MEAN)/cfgs.PIXEL_STD
     
     # add annotations to the center values of each class
-    centers_regres = np.zeros(shape=(*img.shape[:2],REGRESSIONS), dtype='int32')
+    centers_regres = np.zeros(shape=(*img.shape[:2],cfgs.REGRESSIONS), dtype='int32')
     centers_class = np.zeros(shape=img.shape[:2], dtype='int32')
     for lb in labels:
         # get boxes values
@@ -149,27 +188,28 @@ def _adjust_data(img, labels):
         centers_regres[int(cy),int(cx)] = [cx,cy,w,h,angle]
         centers_class[int(cy),int(cx)] = lb[-1]+1
     
-    centers_regres, centers_class = get_gt(centers_class, centers_regres)
+    centers_regres, centers_class = _get_gt(centers_class, centers_regres)
     
     return img, centers_regres.astype('float32'), centers_class.astype('float32')
 
-@tf.function(input_signature=[tf.TensorSpec((None,None,3), tf.uint8), tf.TensorSpec((None,9), tf.int32)])
+@tf.function(input_signature=[tf.TensorSpec((None,None,None), tf.float32), tf.TensorSpec((None,9), tf.int32)])
 def _tf_adjust_data(img, label):
     return tf.py_func(_adjust_data, [img, label], [tf.float32, tf.float32, tf.float32])
 
 # adjust to feed network
 def _adjust2net(img, regress, classes):
-    return {'input':img,
-            'regression':regress,
-            'classification':classes}
+    return img, {'regression':regress, 'classification':classes}
 
-
-def data_loader(path_tfrecords, batch_size):
-        return tf.data.TFRecordDataset(tf.io.gfile.glob(path_tfrecords+'*.tfrecord')) \
-            .map(_read_data) \
-            .map(_tf_adjust_data) \
-            .map(_adjust2net) \
-            .batch(batch_size) \
+def data_loader():
+        return tf.data.TFRecordDataset(tf.io.gfile.glob(cfgs.PATH_TFRECORDS+'*.tfrecord')) \
+            .shuffle(256) \
+            .map(_read_data, num_parallel_calls=AUTOTUNE) \
+            .map(_augment_data, num_parallel_calls=AUTOTUNE) \
+            .map(_tf_adjust_data, num_parallel_calls=AUTOTUNE) \
+            .map(_adjust2net, num_parallel_calls=AUTOTUNE) \
+            .batch(cfgs.BATCH_SIZE) \
+            .prefetch(AUTOTUNE) \
+            .apply(tf.data.experimental.ignore_errors()) \
             .repeat() 
 
 def view_data(img, classes, regression, reduce=16):
@@ -177,7 +217,14 @@ def view_data(img, classes, regression, reduce=16):
     draw = np.copy(img)
     colors = [(255,0,0), (0,255,0)]
     
-    for cl in range(CLASSES):
+    # desnormalization of regressions
+    regression[...,0] *= 32 # cx
+    regression[...,1] *= 32 # cy
+    regression[...,2] *= cfgs.IMG_MAX_LENGTH # w
+    regression[...,3] *= cfgs.IMG_MAX_LENGTH # h
+    regression[...,4] *= -90 # angle
+    
+    for cl in range(cfgs.CLASSES):
         cnt = classes[...,cl]
         
         for gh in range(cnt.shape[0]):
