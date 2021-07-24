@@ -19,9 +19,9 @@ from tqdm import tqdm
 sys.path.append("../../")
 
 from libs.models.detectors.dcl import build_whole_network
+from libs.val_libs.voc_eval_r import EVAL
 from tools.test_ufrgscell_base import TestUFRGSCELL
 from libs.configs import cfgs
-from libs.val_libs.voc_eval_r import EVAL
 
 
 class TestUFRGSCELLGWD(TestUFRGSCELL):
@@ -32,16 +32,8 @@ class TestUFRGSCELLGWD(TestUFRGSCELL):
 
         all_boxes_r = self.eval_with_plac(img_dir=self.args.img_dir, det_net=dcl,
                                           image_ext=self.args.image_ext)
-        
-        #with open(cfgs.VERSION + '_detections_r.pkl', 'rb') as f2:
-        #    all_boxes_r = pickle.load(f2)
-        #
-        #    print(len(all_boxes_r))
 
         imgs = os.listdir(self.args.img_dir)
-        
-        #preds = dict(zip(imgs,all_boxes_r))
-        #pickle.dump(preds, open(f"ufrgs_cell_{self.cfgs.VERSION}.pkl", "wb"))
         
         real_test_imgname_list = [i.split(self.args.image_ext)[0] for i in imgs]
 

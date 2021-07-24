@@ -141,7 +141,7 @@ class TestUFRGSCELL(object):
                     detected_boxes = forward_convert(detected_boxes, False)
                     detected_boxes[:, 0::2] *= (raw_w / resized_w)
                     detected_boxes[:, 1::2] *= (raw_h / resized_h)
-
+                    
                     det_boxes_r_all.extend(detected_boxes)
                     det_scores_r_all.extend(detected_scores)
                     det_category_r_all.extend(detected_categories)
