@@ -13,6 +13,7 @@ import pickle
 import numpy as np
 import argparse
 from tqdm import tqdm
+from importlib import import_module
 sys.path.append("../")
 
 from utils import tools
@@ -39,8 +40,6 @@ def parse_args():
     parser.add_argument('--test_annotation_path', dest='test_annotation_path',
                         help='test annotate path',
                         default='/data/dataset/HRSC2016/HRSC2016/Test/xmls', type=str)
-    parser.add_argument('--model_weights_path', dest='model_weights_path',
-                        default='./cell_detector_weights.h5', type=str)
     parser.add_argument('--gpu', dest='gpu',
                         help='gpu index',
                         default='0', type=str)
@@ -103,12 +102,12 @@ class TestUFRGSCELL(object):
         label_map = LabelMap(cfgs)
         self.name_label_map, self.label_name_map = label_map.name2label(), label_map.label2name()
 
-    def eval_with_plac(self, img_dir, det_net, image_ext):
+    def eval_with_plac(self, img_dir, image_ext):
 
         os.environ["CUDA_VISIBLE_DEVICES"] = self.args.gpu
-        tf.keras.backend.clear_session()
         
-        det_net.load_weights(self.args.model_weights_path)
+        det_net = import_module(f'{cfgs.EXPERIMENT_NAME}.model').Model()
+        det_net.load_weights(f'results/{cfgs.EXPERIMENT_NAME}.h5')
 
         all_boxes_r = []
         imgs = os.listdir(img_dir)

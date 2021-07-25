@@ -22,16 +22,13 @@ import configs as cfgs
 from libs.val_libs.voc_eval_r import EVAL
 
 from test_ufrgscell_base import TestUFRGSCELL
-from model import Model
 
 
 class TestUFRGSCellDetector(TestUFRGSCELL):
 
     def eval(self):
-        det_net = Model()
-
-        all_boxes_r = self.eval_with_plac(img_dir=self.args.img_dir, det_net=det_net,
-                                          image_ext=self.args.image_ext)
+        
+        all_boxes_r = self.eval_with_plac(img_dir=self.args.img_dir, image_ext=self.args.image_ext)
 
         imgs = os.listdir(self.args.img_dir)
         real_test_imgname_list = [i.split(self.args.image_ext)[0] for i in imgs]

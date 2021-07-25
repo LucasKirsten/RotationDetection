@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+EXPERIMENT_NAME = 'claudio'
+
 # gpu setting
 GPU_GROUP = "0"
 NUM_GPUS = len(GPU_GROUP.split(','))
@@ -54,7 +56,6 @@ REGRESSIONS = 5
 # loss
 CLS_WEIGHT = 1.0
 REG_WEIGHT = 1.0
-ANGLE_WEIGHT = 0.5
 
 # evaluation
 USE_07_METRIC = True

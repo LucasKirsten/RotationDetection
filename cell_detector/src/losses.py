@@ -1,6 +1,8 @@
 import tensorflow as tf
 import tensorflow.keras.backend as K
 
+import configs as cfgs
+
 def focal_loss(gamma=2.0, alpha=0.25):
     """
     Implementation of Focal Loss from the paper in multiclass classification
@@ -24,7 +26,7 @@ def focal_loss(gamma=2.0, alpha=0.25):
         
         # sum the losses in mini_batch
         loss = K.sum(loss, axis=1)
-        return loss
+        return cfgs.CLS_WEIGHT * loss
     
     return _focal_loss
 
@@ -40,7 +42,7 @@ def smoothl1():
         y_true = tf.gather_nd(y_true, indices)
         y_pred = tf.gather_nd(y_pred, indices)
         
-        return huber(y_true, y_pred)
+        return cfgs.REG_WEIGHT * huber(y_true, y_pred)
     
     return _smoothl1
         
