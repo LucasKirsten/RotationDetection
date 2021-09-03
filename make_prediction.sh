@@ -10,18 +10,11 @@ fi
 # checkout to correct branch and update repository
 cd RotationDetection
 git checkout cell_detector
-git pull
-mkdir ./imgs
+git pull --force
 
 # ask for images path
-echo "Input the path for the images (click ENTER if images already in Rotation/Detection/imgs)"
+echo "Input the path for the images"
 read IMG_PATH
-
-if [[ ! -z "$IMG_PATH" ]]
-then
-    # copy images to imgs path
-    cp "$IMG_PATH/*" ./imgs/
-fi
 
 # ask for model to make predictions
 echo "Input the model to make predictions (type the number):
@@ -88,9 +81,10 @@ else
 fi
 
 # run docker
-docker run -it --rm --name uranusdet -v $(pwd):/workdir/msc/RotationDetection -w /workdir/msc/RotationDetection --gpus all -d lucasnkirsten/uranusdet:latest
+docker run -it --name uranusdet -v $(pwd):/workdir/msc/RotationDetection -v $IMG_PATH:/workdir/msc/dataset -w /workdir/msc/RotationDetection --gpus all -d lucasnkirsten/uranusdet:latest
 # run inference inside docker image
-docker exec uranusdet python run_inference.py --img_dir='./imgs' --gpu=0 --image_ext='.jpg' $MODEL_NAME
+docker exec uranusdet bash setup.sh
+docker exec uranusdet python run_inference.py --img_dir='/workdir/msc/dataset' --gpu=0 --image_ext='.jpg' $MODEL_NAME
 
 # remove container (if still running)
 docker stop uranusdet && docker rm uranusdet
