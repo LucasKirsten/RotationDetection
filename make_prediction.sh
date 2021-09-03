@@ -11,6 +11,17 @@ fi
 cd RotationDetection
 git checkout cell_detector
 git pull
+mkdir ./imgs
+
+# ask for images path
+echo "Input the path for the images (click ENTER if images already in Rotation/Detection/imgs)"
+read IMG_PATH
+
+if [[ ! -z "$IMG_PATH" ]]
+then
+    # copy images to imgs path
+    cp "$IMG_PATH/*" ./imgs/
+fi
 
 # ask for model to make predictions
 echo "Input the model to make predictions (type the number):
@@ -75,7 +86,7 @@ else
     echo "Invalid model!"
     exit 0
 fi
-  
+
 # run docker
 docker run -it --rm --name uranusdet -v $(pwd):/workdir/msc/RotationDetection -w /workdir/msc/RotationDetection --gpus all -d lucasnkirsten/uranusdet:latest
 # run inference inside docker image
