@@ -50,7 +50,7 @@ class TestUFRGSCELLGWD(TestUFRGSCELL):
         evaler = EVAL(self.cfgs)
         evaler.write_voc_results_file(all_boxes=all_boxes_r,
                                       test_imgid_list=real_test_imgname_list,
-                                      det_save_dir=f'./{model_name}_results')
+                                      det_save_dir=f'../{model_name}_results')
 
 
 if __name__ == '__main__':
