@@ -22,13 +22,13 @@ model_name = sys.argv[-1]
 
 cfgs = import_module(f'libs.configs.UFRGS_CELL.{model_name}')
 if model_name=='csl':
-    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network.DetectionNetworkCSL')
+    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network').DetectionNetworkCSL
 elif model_name=='dcl':
-    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network.DetectionNetworkDCL')
+    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network').DetectionNetworkDCL
 elif model_name=='r3det':
-    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network.DetectionNetworkR3Det')
+    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network').DetectionNetworkR3Det
 elif model_name=='retinanet':
-    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network.DetectionNetworkRetinaNet')
+    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network').DetectionNetworkRetinaNet
 
 from libs.val_libs.voc_eval_r import EVAL
 from tools.test_ufrgscell_base import TestUFRGSCELL
