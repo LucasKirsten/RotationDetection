@@ -1,7 +1,7 @@
 #!/bin/bash
 
-cd ./libs/utils/cython_utils
+cd /workdir/msc/RotationDetection/libs/utils/cython_utils
 python setup.py build_ext --inplace
 
-cd ./libs/utils/
+cd /workdir/msc/RotationDetection/libs/utils/
 python setup.py build_ext --inplace
