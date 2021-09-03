@@ -37,10 +37,16 @@ ROOT_PATH = '/workdir/msc/RotationDetection'
 PRETRAINED_CKPT = pretrain_zoo.pretrain_weight_path(NET_NAME, ROOT_PATH)
 TRAINED_CKPT = os.path.join(ROOT_PATH, 'output/trained_weights')
 
+# bbox head
+ANGLE_RANGE = 180
+
 # loss
-USE_IOU_FACTOR = False
 CLS_WEIGHT = 1.0
 REG_WEIGHT = 1.0
-REG_LOSS_MODE = 4
+ANGLE_WEIGHT = 0.5
 
-VERSION = 'RetinaNet_UFRGS_CELL_smooth_l1_loss'
+# DCL
+OMEGA = 180 / 256.
+ANGLE_MODE = 1  # {0: BCL, 1: GCL}
+
+VERSION = 'DLCv3_UFRGS_CELL_smooth_l1_loss'

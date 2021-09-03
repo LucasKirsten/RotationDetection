@@ -45,6 +45,7 @@ def parse_args():
                         action='store_true')
     parser.add_argument('--multi_scale', '-ms', default=False,
                         action='store_true')
+    parser.add_argument('model', default='none')
 
     if len(sys.argv) == 1:
         parser.print_help()
