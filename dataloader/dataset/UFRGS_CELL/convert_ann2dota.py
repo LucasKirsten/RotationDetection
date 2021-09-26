@@ -74,12 +74,15 @@ def convert2dota(path_imgs, path_ann, path_save):
 if __name__=='__main__':
     
     # change here
-    path_root = '/workdir/datasets/msc/UFRGS_CELL_2classes/test'
-    path_img  = os.path.join(path_root, 'imgs')
-    path_ann  = os.path.join(path_root, 'annotations', 'alpr')
-    path_save = os.path.join(path_root, 'annotations', 'dota_format')
+    path_ann = '/workdir/datasets/msc/UFRGS_CELL/comparative_annotations/annotations/Samlai'
+    path_img  = '/workdir/datasets/msc/UFRGS_CELL/comparative_annotations/imgs'
+    path_save = os.path.join(path_ann, 'dota_format')
+    
+    #path_img  = os.path.join(path_root, 'imgs')
+    #path_ann  = os.path.join(path_root, 'annotations', 'alpr')
+    #path_save = os.path.join(path_root, 'annotations', 'dota_format')
     
     os.makedirs(path_save, exist_ok=True)
-    path_imgs = sorted(glob(os.path.join(path_img, '*')))
-    path_ann  = sorted(glob(os.path.join(path_ann, '*')))
+    path_imgs = sorted(glob(os.path.join(path_img, '*.jpg')))
+    path_ann  = sorted(glob(os.path.join(path_ann, '*.txt')))
     convert2dota(path_imgs, path_ann, path_save)

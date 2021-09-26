@@ -29,6 +29,14 @@ elif model_name=='r3det':
     DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network').DetectionNetworkR3Det
 elif model_name=='retinanet':
     DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network').DetectionNetworkRetinaNet
+elif model_name=='rsdet':
+    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network_5p').DetectionNetworkRSDet
+elif model_name=='refine_retinanet':
+    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network').DetectionNetworkRefineRetinaNet
+elif model_name=='r3det_dcl':
+    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network').DetectionNetworkR3DetDCL
+elif model_name=='r2cnn':
+    DetectionNetwork = import_module(f'libs.models.detectors.{model_name}.build_whole_network').DetectionNetworkR2CNN
 
 from libs.val_libs.voc_eval_r import EVAL
 from tools.test_ufrgscell_base import TestUFRGSCELL

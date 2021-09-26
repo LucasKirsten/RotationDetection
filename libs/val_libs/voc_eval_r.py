@@ -30,7 +30,7 @@ class EVAL(object):
     for cls, cls_ind in self.name_label_map.items():
       if cls == 'back_ground':
         continue
-      print('Writing {} VOC results file'.format(cls))
+      #print('Writing {} VOC results file'.format(cls))
 
       with open(det_save_path, 'wt') as f:
         for im_ind, index in enumerate(test_imgid_list):
@@ -58,7 +58,7 @@ class EVAL(object):
     for cls, cls_id in self.name_label_map.items():
       if cls == 'back_ground':
         continue
-      print("Writing {} VOC resutls file".format(cls))
+      #print("Writing {} VOC resutls file".format(cls))
 
       tools.makedirs(det_save_dir)
       det_save_path = os.path.join(det_save_dir, "det_"+cls+".txt")
@@ -253,11 +253,11 @@ class EVAL(object):
 
     return rec, prec, ap
 
-  def do_python_eval(self, test_imgid_list, test_annotation_path, ovthreshold):
+  def do_python_eval(self, test_imgid_list, test_annotation_path, ovthreshold, verbose):
     # import matplotlib.colors as colors
     # import matplotlib.pyplot as plt
 
-    AP_list = []
+    AP_list,prec_list,recall_list = [],[],[]
     for cls, index in self.name_label_map.items():
       if cls == 'back_ground':
         continue
@@ -268,32 +268,45 @@ class EVAL(object):
                                             annopath=test_annotation_path,
                                             use_07_metric=self.cfgs.USE_07_METRIC,
                                             ovthresh=ovthreshold)
+      
       AP_list += [AP]
-      print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, recall[-1], precision[-1], AP))
-      # print("{}_ap: {}".format(cls, AP))
-      # print("{}_recall: {}".format(cls, recall[-1]))
-      # print("{}_precision: {}".format(cls, precision[-1]))
-      r = np.array(recall)
-      p = np.array(precision)
-      F1 = 2 * r * p / (r + p + 1e-5)
-      max_ind = np.argmax(F1)
-      print('F1:{} P:{} R:{}'.format(F1[max_ind], p[max_ind], r[max_ind]))
+      if len(precision)>0:
+        prec_list += [precision[-1]]
+      else:
+        prec_list += [0.0]
+      
+      if len(recall)>0:
+        recall_list += [recall[-1]]
+      else:
+        recall_list += [0.0]
+      if verbose:
+        print('Threshold: ', ovthreshold)
+        print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, recall[-1], precision[-1], AP))
+        # print("{}_ap: {}".format(cls, AP))
+        # print("{}_recall: {}".format(cls, recall[-1]))
+        # print("{}_precision: {}".format(cls, precision[-1]))
+        #r = np.array(recall)
+        #p = np.array(precision)
+        #F1 = 2 * r * p / (r + p + 1e-5)
+        #max_ind = np.argmax(F1)
+        #print('F1:{} P:{} R:{}'.format(F1[max_ind], p[max_ind], r[max_ind]))
 
-      # c = colors.cnames.keys()
-      # c_dark = list(filter(lambda x: x.startswith('dark'), c))
-      # c = ['red', 'orange']
-      # plt.axis([0, 1.2, 0, 1])
-      # plt.plot(recall, precision, color=c_dark[index], label=cls)
+        # c = colors.cnames.keys()
+        # c_dark = list(filter(lambda x: x.startswith('dark'), c))
+        # c = ['red', 'orange']
+        # plt.axis([0, 1.2, 0, 1])
+        # plt.plot(recall, precision, color=c_dark[index], label=cls)
 
-    # plt.legend(loc='upper right')
-    # plt.xlabel('R')
-    # plt.ylabel('P')
-    # plt.savefig('./PR_R.png')
+        # plt.legend(loc='upper right')
+        # plt.xlabel('R')
+        # plt.ylabel('P')
+        # plt.savefig('./PR_R.png')
 
-    print("mAP is : {}".format(np.mean(AP_list)))
-    return np.mean(AP_list)
+        print("mAP is : {}".format(np.mean(AP_list)))
+        print('\n')
+    return np.mean(AP_list), np.mean(prec_list), np.mean(recall_list)
 
-  def voc_evaluate_detections(self, all_boxes, test_imgid_list, test_annotation_path):
+  def voc_evaluate_detections(self, all_boxes, test_imgid_list, test_annotation_path, start_th=0.5, step_th=0.05, verbose=True):
     '''
 
     :param all_boxes: is a list. each item reprensent the detections of a img.
@@ -306,12 +319,14 @@ class EVAL(object):
     self.write_voc_results_file(all_boxes, test_imgid_list=test_imgid_list,
                                 det_save_dir=self.cfgs.EVALUATE_R_DIR)
     
-    mAps = []
-    for th in np.arange(0.5,1.0,0.05):
-        print('Threshold: ', th)
-        ap = self.do_python_eval(test_imgid_list, test_annotation_path, ovthreshold=th)
-        mAps.append(ap)
-        print('\n')
-        
-    print('mAP50:95 : ', np.mean(mAps))
-
+    mAps,precisions,recalls = [],[],[]
+    for th in np.arange(start_th,1.0,step_th):
+        ap,prec,rec = self.do_python_eval(test_imgid_list, test_annotation_path, ovthreshold=th, verbose=verbose)
+        mAps.append([th,ap])
+        precisions.append([th,prec])
+        recalls.append([th,rec])
+    
+    if start_th==0.5 and step_th==0.05 and verbose:
+        print('mAP50:95 : ', np.mean([ap for _,ap in mAps]))
+    
+    return mAps,precisions,recalls

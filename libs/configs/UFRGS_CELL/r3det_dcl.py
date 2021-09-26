@@ -19,10 +19,10 @@ MAX_ITERATION = SAVE_WEIGHTS_INTE * MAX_EPOCH
 WARM_SETP = int(WARM_EPOCH * SAVE_WEIGHTS_INTE)
 
 # dataset
-DATASET_NAME = 'UFRGS_CELL_1class'
+DATASET_NAME = 'UFRGS_CELL'
 IMG_SHORT_SIDE_LEN = 512
 IMG_MAX_LENGTH = 512
-CLASS_NUM = 1
+CLASS_NUM = 2
 
 # data augmentation
 IMG_ROTATE = True
@@ -37,10 +37,22 @@ ROOT_PATH = '/workdir/msc/RotationDetection'
 PRETRAINED_CKPT = pretrain_zoo.pretrain_weight_path(NET_NAME, ROOT_PATH)
 TRAINED_CKPT = os.path.join(ROOT_PATH, 'output/trained_weights')
 
+# bbox head
+NUM_REFINE_STAGE = 1
+ANGLE_RANGE = 180
+
+# sample
+REFINE_IOU_POSITIVE_THRESHOLD = [0.6, 0.7]
+REFINE_IOU_NEGATIVE_THRESHOLD = [0.5, 0.6]
+
 # loss
-USE_IOU_FACTOR = False
 CLS_WEIGHT = 1.0
 REG_WEIGHT = 1.0
-REG_LOSS_MODE = 4
+ANGLE_WEIGHT = 0.5
+USE_IOU_FACTOR = True
 
-VERSION = 'RetinaNet_UFRGS_CELL_smooth_l1_loss'
+# DCL
+OMEGA = 180 / 256.  
+ANGLE_MODE = 0  # {0: BCL, 1: GCL}
+
+VERSION = 'R3Det_DCL_UFRGS_CELL_smooth_l1_loss'

@@ -18,7 +18,7 @@ import argparse
 from tqdm import tqdm
 sys.path.append("../../")
 
-from libs.models.detectors.retinanet import build_whole_network
+from libs.models.detectors.rsdet import build_whole_network_5p as build_whole_network
 from tools.test_ufrgscell_base import TestUFRGSCELL
 from libs.configs import cfgs
 from libs.val_libs.voc_eval_r import EVAL
@@ -27,7 +27,7 @@ from libs.val_libs.voc_eval_r import EVAL
 class TestUFRGSCELLGWD(TestUFRGSCELL):
 
     def eval(self):
-        gwd = build_whole_network.DetectionNetworkRetinaNet(cfgs=self.cfgs,
+        gwd = build_whole_network.DetectionNetworkRSDet(cfgs=self.cfgs,
                                                       is_training=False)
 
         all_boxes_r = self.eval_with_plac(img_dir=self.args.img_dir, det_net=gwd,
