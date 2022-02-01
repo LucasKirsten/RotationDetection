@@ -34,8 +34,7 @@ def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2):
     
     return Hd
 
-def get_probiou_values(array):
-    cx,cy,w,h,angle = array
+def get_probiou_values(cx,cy,w,h,angle):
     angle *= np.pi/180
     
     # get ProbIoU values
@@ -136,8 +135,8 @@ for i in range(len(frames)-1):
         for k in range(costs.shape[1]):
             v0 = np.float32(frm0[j][2:-1])
             v1 = np.float32(frm1[k][2:-1])
-            piou0 = get_probiou_values(v0)
-            piou1 = get_probiou_values(v1)
+            piou0 = get_probiou_values(*v0)
+            piou1 = get_probiou_values(*v1)
             costs[j,k] = helinger_dist(*piou0, *piou1)
             
     # hungarian algorithm
