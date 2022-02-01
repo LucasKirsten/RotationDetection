@@ -1,4 +1,7 @@
 # Byte-compiled / optimized / DLL files
+
+track_by_detection/frames
+
 __pycache__/
 *.py[cod]
 *$py.class
