@@ -146,24 +146,13 @@ for i in range(len(frames)-1):
     # map the detected objects to its pairs
     for row,col in zip(row_ind, col_ind):
         frames[i+1][col][-1] = frames[i][row][-1]
-        
-    # map the non detected objects to possible future actions
-    if len(frm1)>len(col_ind):
-        diff_ind = list(set(range(len(frm1))) - set(col_ind))
-    else:
-        diff_ind = list(set(col_ind) - set(range(len(frm1))))
-    for ind in diff_ind:
-        if len(frm0)>len(frm1):
-            frames[i+1][ind][-1] = 'FN,CD'
-        else:
-            frames[i+1][ind][-1] = 'FP,MIT,PFN'
     
-    # # add a new id for new detections
-    # for k in range(len(frm1)):
-    #     fr_id = float(frames[i+1][k][-1])
-    #     if fr_id==-1:
-    #         frames[i+1][k][-1] = max(ids) + 1
-    #         ids.add(float(frames[i+1][k][-1]))
+    # add a new id for new detections
+    for k in range(len(frm1)):
+        fr_id = float(frames[i+1][k][-1])
+        if fr_id==-1:
+            frames[i+1][k][-1] = max(ids) + 1
+            ids.add(float(frames[i+1][k][-1]))
 
 #%%
 
