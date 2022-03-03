@@ -1,0 +1,11 @@
+numpy
+numba
+opencv-python
+matplotlib
+scipy
+tqdm
+multiprocessing
+joblib
+tensorflow-gpu==2.x
+"git+https://github.com/cvxgrp/cvxpy.git#egg=cvxpy[glpk]"
+cvxopt
