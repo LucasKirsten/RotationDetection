@@ -10,41 +10,32 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import linear_sum_assignment
+from time import time
 
+from preprocessing import *
 from frames_utils import *
 from bise_etal import *
 from classes import *
-
-DEBUG = False
-
-dataset  = 'Dados CytoSMART' # Dados CytoSMART OR osfstorage_dataset
-detector = 'r3det' # r2cnn OR r3det
+from configs import *
 
 #%% read all detections
+init = time()
 
-path_imgs = f'./frames/{dataset}/frames'
-path_dets = f'./frames/{dataset}/{detector}'
-
+path_imgs = f'./frames/{DATASET}/frames'
+path_dets = f'./frames/{DATASET}/{DETECTOR}'
 
 # get only some frames
 frame_imgs = [file.split('.')[0] for file in os.listdir(path_imgs)]
-frame_imgs = sorted(frame_imgs)[:101]
+frame_imgs = sorted(frame_imgs)[:1001]
 
-# open normal detections
-normal_detections = read_detections(f'{path_dets}/det_normal_cell.txt', frame_imgs)
-
-# open mitoses detections
-mitoses_detections = read_detections(f'{path_dets}/det_mitoses.txt', frame_imgs)
-
-# merge detections
-detections = [Detection(*det,0) for det in normal_detections]
-detections.extend([Detection(*det,1) for det in mitoses_detections])
-
-# sort detections by name
-detections = sorted(detections, key=lambda x:x.frame)
+# get detections
+detections = read_detections(f'{path_dets}/det_normal_cell.txt', \
+                             f'{path_dets}/det_mitoses.txt', frame_imgs)
 
 #%% split detections into frames
 frames = get_frames(detections)
+Nf = len(frames)
+del detections
 
 if DEBUG:
     for frm in frames[:10]:
@@ -64,6 +55,9 @@ if DEBUG:
         cv2.imshow('frames and detections',draw)
         cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+#%% apply NMS on frames detections
+nms_frames = apply_NMS(frames)
 
 #%% get trackelts
 tracklets = get_tracklets(frames)
@@ -104,12 +98,16 @@ if DEBUG:
     cv2.destroyAllWindows()
 
 #%% solve tracklets
-final_tracklets = solve_tracklets(tracklets, frames)
+final_tracklets = solve_tracklets(tracklets, Nf)
+
+print('Elapsed time: ', time()-init)
 
 #%% draw detections from CNN
 
 frame_imgs = []
-for frm in frames:
+pbar = tqdm(frames)
+pbar.set_description('Reading frames')
+for frm in pbar:
     img_name = frm[0].frame
     img_name = os.path.join(path_imgs, img_name+'.jpg')
     img = cv2.imread(img_name)[...,::-1]
@@ -127,10 +125,12 @@ for frm in frames:
 
 #%% draw trackings
 
-total_detections = len(tracklets)
+total_detections = len(final_tracklets)
 colors = np.linspace(10,240,total_detections+1,dtype='uint8')[1:]
 
-for ti,track in enumerate(tracklets):
+pbar = tqdm(enumerate(final_tracklets), total=len(final_tracklets))
+pbar.set_description('Drawing tracklets')
+for ti,track in pbar:
     
     start = track.start
     det_id = track[0].idx
@@ -153,11 +153,14 @@ if DEBUG:
         cv2.imshow('', img)
         cv2.waitKey(0)
     cv2.destroyAllWindows()
+    
+print('Elapsed time with drawing: ', time()-init)
 
 #%%
     
 h,w,c = frame_imgs[0].shape
-out = cv2.VideoWriter(f'./{dataset}_{detector}.avi',cv2.VideoWriter_fourcc(*'XVID'), 10.0, (w,h))
+out = cv2.VideoWriter(f'./{DATASET}_{DETECTOR}_{len(frames)}.avi',\
+                      cv2.VideoWriter_fourcc(*'XVID'), 10.0, (w,h))
 for img in frame_imgs:
     out.write(img)
 out.release()

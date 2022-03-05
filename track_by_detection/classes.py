@@ -9,7 +9,7 @@ import numpy as np
 from func_utils import get_piou
 
 class Detection():
-    def __init__(self, frame,score,cx,cy,w,h,ang,mit):
+    def __init__(self, frame,score,cx,cy,w,h,ang,a=None,b=None,c=None,mit=0):
         self.frame = frame
         self.score = score
         self.w = w
@@ -17,15 +17,21 @@ class Detection():
         self.ang = ang
         self.mit = mit
         self.idx = -1
-        self.cx,self.cy,self.a,self.b,self.c = \
-            get_piou(cx,cy,self.w,self.h,self.ang)
+        self.cx = cx
+        self.cy = cy
+        
+        if (a is None) or (b is None) or (c is None):
+            self.cx,self.cy,self.a,self.b,self.c = \
+                get_piou(cx,cy,self.w,self.h,self.ang)
         
 class Tracklet():
     def __init__(self, detections, start):
         if type(detections)==list:
             self.detections = detections
+            self.sum_score = np.sum([d.score for d in detections])
         else:
             self.detections = [detections]
+            self.sum_score = detections.score
         self.start = start
         self.size = len(self.detections)
         self.end = start + self.size
@@ -42,18 +48,21 @@ class Tracklet():
     
     def append(self, x):
         self.detections.append(x)
+        self.sum_score += x.score
         self.__add(1)
         
-    def extend(self, x):
-        self.detections.extend(x)
-        self.__add(len(x) if type(x)==list else 1)
+    def score(self):
+        return self.sum_score/self.size
+        
+    # def extend(self, x):
+    #     self.detections.extend(x)
+    #     self.__add(len(x) if type(x)==list else 1)
     
     # join two tracklets (e.g., for translation hyphotesis)
     def join(self, tracklet):
         
         # if there are gaps between tracklets fill them
         if self.end - tracklet.start>0:
-            print('filling gaps...')
             dx = self.end-tracklet.start
             d0 = self[-1]
             df = tracklet[0]
@@ -62,7 +71,7 @@ class Tracklet():
                 parms = {'cx':None,'cy':None,'w':None,'h':None,'ang':None}
                 for p in parms.keys():
                     parms[p] = d0.__dict__[p] + (df.__dict__[p]-d0.__dict__[p])/dx*(i+1)
-                parms.update({'frame':None,'score':None,'mit':0})
+                parms.update({'frame':None,'score':0,'mit':0})
                 
                 self.append(Detection(**parms))
             
@@ -71,7 +80,7 @@ class Tracklet():
         
 class Frame(list):
     def get_values(self):
-        return np.array([[d.cx,d.cy,d.w,d.h,d.ang,d.a,d.b,d.c] for d in self])
+        return np.array([[d.score,d.cx,d.cy,d.w,d.h,d.ang,d.a,d.b,d.c,d.mit] for d in self])
     
     
     

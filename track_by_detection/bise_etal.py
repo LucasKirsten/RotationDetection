@@ -5,41 +5,40 @@ Created on Wed Feb  9 18:49:44 2022
 @author: kirstenl
 """
 
-import tensorflow as tf
 import numpy as np
 import cvxpy
-import multiprocessing
 from tqdm import tqdm
-from numba import njit,jit
 from joblib import Parallel, delayed
+import multiprocessing
 NUM_CORES = multiprocessing.cpu_count()
 
+from configs import *
 from func_utils import *
+from frames_utils import _adjust_tracklets
 
 import sys
 
 #%% make hyphotesis
-@tf.autograph.experimental.do_not_convert
 def _make_hypotheses(tracklets, Nf):
     
     Nx = len(tracklets)
     SIZE = 2*Nx+Nf
     
     #for k,track in enumerate(tracklets):
-    def _get_hyphoteses(k):
+    def __get_hyphoteses(k):
         
         track = tracklets[k]
     
         hyp,C,pho = [],[],[]
             
         # determine alpha value based on normal and mitoses precision
-        alpha = 0.7207 if int(track[-1].mit)==0 else 0.8806
+        alpha = ALPHA_NORMAL if int(track[-1].mit)==0 else ALPHA_MITOSE
         
         # initialization hypothesis
-        if track.start<10:
+        if track.start<INIT_TH:
             Ch = np.zeros(SIZE, dtype='bool')
             Ch[[i==Nx+k for i in range(SIZE)]] = 1
-            ph = Pini(track)*PTP(track, alpha)
+            ph = Pini(track)*PTP(track, alpha, track.score())
         
             hyp.append(f'init_{k}')
             C.append(Ch)
@@ -48,7 +47,7 @@ def _make_hypotheses(tracklets, Nf):
         # false positive hypothesis
         Ch = np.zeros(SIZE, dtype='bool')
         Ch[[i==k or i==Nx+k for i in range(SIZE)]] = 1
-        ph = PFP(track, alpha)
+        ph = PFP(track, alpha, track.score())
         
         hyp.append(f'fp_{k}')
         C.append(Ch)
@@ -62,7 +61,7 @@ def _make_hypotheses(tracklets, Nf):
         for track2 in tracklets[k+1:]:
             k2 += 1
             
-            if track2.start-track.start>20:
+            if track2.start-track.start>TRANSP_TH:
                 break
             
             if track.start==track2.start:
@@ -70,7 +69,7 @@ def _make_hypotheses(tracklets, Nf):
             
             # calculate center distances
             cnt_dist = center_distances(track[0].cx,track[0].cy, track2[-1].cx,track2[-1].cy)
-            if cnt_dist>100:
+            if cnt_dist>CENTER_TH:
                 continue
             
             # translation hypothesis
@@ -88,17 +87,14 @@ def _make_hypotheses(tracklets, Nf):
             # mitoses hypothesis
             if has_mitoses:
                 
-                if track2.start-track.start>10:
-                    continue
-                
                 # mitoses distance in frames
                 d_mit = min(abs(dist_mitoses-track2.start))
-                if d_mit>10:
+                if d_mit>MIT_TH:
                     continue
                 
                 # calculate center distances
                 cnt_dist = center_distances(track[0].cx,track[0].cy, track2[-1].cx,track2[-1].cy)
-                if cnt_dist>50:
+                if cnt_dist>CENTER_MIT_TH:
                     continue
                     
                 Ch = np.zeros(SIZE, dtype='bool')
@@ -123,45 +119,34 @@ def _make_hypotheses(tracklets, Nf):
         
         yield hyp,C,pho
         
-    return _get_hyphoteses
+    return __get_hyphoteses
 
 #%% populate C and pho matrixes for hypothesis
-def _get_C_pho_matrixes(tracklets, frames):
+def _get_C_pho_matrixes(tracklets, Nf):
     
     Nx = len(tracklets)
-    Nf = len(frames)
-    
-    # index to each tracklet
-    indexes = np.arange(Nx)
-    
-    it = tf.data.Dataset
-    it = it.from_tensor_slices(indexes)
-    it = it.interleave(
-        lambda index:tf.data.Dataset.from_generator(
-            _make_hypotheses(tracklets, Nf),
-            (tf.string, tf.float32, tf.float32),
-            args=(index,)),
-        cycle_length=4, block_length=16,
-        num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    it = it.prefetch(buffer_size=tf.data.AUTOTUNE)
-    
-    pbar = tqdm(it.as_numpy_iterator(), total=len(tracklets))
+    pbar = tqdm(range(Nx))
     pbar.set_description('Bulding hyphotesis matrix: ')
     
+    generator = _make_hypotheses(tracklets, Nf)
     hyp,C,pho = [],[],[]
-    for h,c,p in pbar:
+    def _populate_matrixes(i):
+        h,c,p = next(generator(i))
         hyp.extend(h)
         C.extend(c)
         pho.extend(p)
+        
+    with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
+        _ = parallel(delayed(_populate_matrixes)(i) for i in pbar)
     
     return np.array(C), np.float32(pho), hyp
 
 #%% solve integer optimization problem
 
-def solve_tracklets(tracklets, frames):
+def solve_tracklets(tracklets, Nf):
     
     # get hypothesis matrixes
-    C, pho, hyp = _get_C_pho_matrixes(tracklets, frames)
+    C, pho, hyp = _get_C_pho_matrixes(tracklets, Nf)
     
     x = cvxpy.Variable((len(pho),1), boolean=True)
     
@@ -178,7 +163,7 @@ def solve_tracklets(tracklets, frames):
     hyp = np.array(hyp)[x==1]
     
     print('Adjusting final tracklets...')
-    final_tracklets = _adjust_tracklets
+    final_tracklets = _adjust_tracklets(tracklets, hyp)
             
     return final_tracklets
 

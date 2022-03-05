@@ -12,6 +12,8 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 NUM_CORES = multiprocessing.cpu_count()
 
+from configs import *
+
 #%% intersection over union
 
 @njit
@@ -77,42 +79,70 @@ def center_distances(x1,y1, x2,y2):
 
 #%% functions to calculate probabilities
 
-def PFP(Xk, alpha=0.5):
-    return alpha**len(Xk)
+def PFP(Xk, alpha, score):
+    return ((1-score)*alpha)/len(Xk)
 
-def PTP(Xk, alpha=0.2):
-    return 1 - PFP(Xk, alpha)
+def PTP(Xk, alpha, score):
+    return 1 - PFP(Xk, alpha, score)
 
-def Pini(Xk, thetat=10, lambda1=5):
+def Pini(Xk):
     dt0 = Xk.start
-    return np.exp(-dt0/lambda1)
+    return np.exp(-dt0/INIT_FACTOR)
 
-def Plink(Xj, Xi, cnt_dist, lambda3=300):
+def Plink(Xj, Xi, cnt_dist):
     featij = cnt_dist
     featij *= abs(Xj.start-Xi.start+1)
     
-    return np.exp(-np.abs(featij)/lambda3)
+    return np.exp(-np.abs(featij)/LINK_FACTOR)
 
-def Pmit(Xj, Xi, cnt_dist, d_mit, lambda3=300):
+def Pmit(Xj, Xi, cnt_dist, d_mit):
     featij = cnt_dist
     featij *= d_mit*abs(Xj.start-Xi.start+1)
     
-    return np.exp(-np.abs(featij)/lambda3)
+    return np.exp(-np.abs(featij)/MIT_FACTOR)
 
 #%% functions to read detections
 
-def read_detections(path_detections, frame_imgs=[]):
+def _read(path_detections, frame_imgs=[]):
     with open(path_detections, 'r') as file:
         dets = file.read()
         dets = dets.split('\n')
         
         pbar = tqdm(dets)
-        pbar.set_description('Reading detections: ')
         detections = []
         for det in pbar:
             if det.split(' ')[0] in frame_imgs:
                 values = det.split(' ')
                 detections.append([values[0], *list(map(lambda x:float(x),values[1:]))])
-        #detections = [det.split(' ') for det in pbar if det.split(' ')[0] in frame_imgs]
     
     return detections
+
+def read_detections(path_normals, path_mitoses, frame_imgs=[]):
+    from classes import Detection
+    
+    # open normal detections
+    print('Reading normal detections: ')
+    normal_detections = _read(path_normals, frame_imgs)
+
+    # open mitoses detections
+    print('Reading mitoses detections: ')
+    mitoses_detections = _read(path_mitoses, frame_imgs)
+
+    # merge detections
+    detections = [Detection(*det,0) for det in normal_detections \
+                      if det[1]>NORMAL_SCORE_TH]
+    detections.extend([Detection(*det,1) for det in mitoses_detections \
+                           if det[1]>MIT_SCORE_TH])
+
+    # sort detections by name
+    return sorted(detections, key=lambda x:x.frame)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
