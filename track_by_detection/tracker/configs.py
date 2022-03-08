@@ -9,7 +9,7 @@ Created on Thu Mar  3 20:14:23 2022
 DEBUG = False
 
 DATASET  = 'Dados CytoSMART' # Dados CytoSMART OR osfstorage_dataset
-DETECTOR = 'r2cnn' # r2cnn OR r3det
+DETECTOR = 'r3det' # r2cnn OR r3det
 
 # value to filter individual detections based on minimun score
 # for normal detections

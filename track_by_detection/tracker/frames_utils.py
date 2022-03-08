@@ -14,9 +14,9 @@ from joblib import Parallel, delayed
 import multiprocessing
 NUM_CORES = multiprocessing.cpu_count()
 
-from configs import *
-from func_utils import *
-from classes import *
+from .configs import *
+from .func_utils import *
+from .classes import *
 
 #%% get the frames from detections
 

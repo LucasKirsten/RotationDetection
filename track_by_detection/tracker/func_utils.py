@@ -6,13 +6,14 @@ Created on Wed Feb  9 18:43:43 2022
 """
 
 import numpy as np
+import pandas as pd
 from numba import njit
 import multiprocessing
 from tqdm import tqdm
 from joblib import Parallel, delayed
 NUM_CORES = multiprocessing.cpu_count()
 
-from configs import *
+from .configs import *
 
 #%% intersection over union
 
@@ -103,45 +104,28 @@ def Pmit(Xj, Xi, cnt_dist, d_mit):
 
 #%% functions to read detections
 
-def _read(path_detections, frame_imgs=[]):
-    with open(path_detections, 'r') as file:
-        dets = file.read()
-        dets = dets.split('\n')
-        
-        pbar = tqdm(dets)
-        detections = []
-        for det in pbar:
-            if det.split(' ')[0] in frame_imgs:
-                values = det.split(' ')
-                detections.append([values[0], *list(map(lambda x:float(x),values[1:]))])
+def _read(path_dets, frame_imgs, threshold, mit):
+    from .classes import Detection
+    
+    detections = pd.read_csv(path_dets, header=None, sep=' ')
+    detections = detections.loc[detections.iloc[:,0].isin(frame_imgs)]
+    detections = detections.loc[detections.iloc[:,1]>threshold]
+    detections = [Detection(*det,mit) for _,det in detections.iterrows()]
     
     return detections
 
-def read_detections(path_normals, path_mitoses, frame_imgs=[]):
-    from classes import Detection
+def read_detections(path_normals, path_mitoses, frame_imgs):
     
     # open normal detections
-    print('Reading normal detections: ')
-    normal_detections = _read(path_normals, frame_imgs)
+    print('Reading normal detections...')
+    detections = _read(path_normals, frame_imgs, NORMAL_SCORE_TH, 0)
 
     # open mitoses detections
-    print('Reading mitoses detections: ')
-    mitoses_detections = _read(path_mitoses, frame_imgs)
-
-    # merge detections
-    detections = [Detection(*det,0) for det in normal_detections \
-                      if det[1]>NORMAL_SCORE_TH]
-    detections.extend([Detection(*det,1) for det in mitoses_detections \
-                           if det[1]>MIT_SCORE_TH])
+    print('Reading mitoses detections...')
+    detections.extend(_read(path_mitoses, frame_imgs, MIT_SCORE_TH, 1))
 
     # sort detections by name
-    return sorted(detections, key=lambda x:x.frame)
-    
-    
-    
-    
-    
-    
+    return detections #sorted(detections, key=lambda x:x.frame)
     
     
     

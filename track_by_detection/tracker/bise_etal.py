@@ -12,11 +12,9 @@ from joblib import Parallel, delayed
 import multiprocessing
 NUM_CORES = multiprocessing.cpu_count()
 
-from configs import *
-from func_utils import *
-from frames_utils import _adjust_tracklets
-
-import sys
+from .configs import *
+from .func_utils import *
+from .frames_utils import _adjust_tracklets
 
 #%% make hyphotesis
 def _make_hypotheses(tracklets, Nf):

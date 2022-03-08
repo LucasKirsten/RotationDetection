@@ -6,23 +6,25 @@ Created on Wed Mar  2 14:26:49 2022
 """
 
 import numpy as np
-from func_utils import get_piou
+from .func_utils import get_piou
 
 class Detection():
     def __init__(self, frame,score,cx,cy,w,h,ang,a=None,b=None,c=None,mit=0):
         self.frame = frame
-        self.score = score
-        self.w = w
-        self.h = h
-        self.ang = ang
-        self.mit = mit
+        self.score = float(score)
+        self.w = float(w)
+        self.h = float(h)
+        self.ang = float(ang)
+        self.mit = int(mit)
         self.idx = -1
-        self.cx = cx
-        self.cy = cy
+        self.cx = float(cx)
+        self.cy = float(cy)
         
         if (a is None) or (b is None) or (c is None):
             self.cx,self.cy,self.a,self.b,self.c = \
-                get_piou(cx,cy,self.w,self.h,self.ang)
+                get_piou(self.cx,self.cy,self.w,self.h,self.ang)
+        else:
+            self.a,self.b,self.c = float(a),float(b),float(c)
         
 class Tracklet():
     def __init__(self, detections, start):

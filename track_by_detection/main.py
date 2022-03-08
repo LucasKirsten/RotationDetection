@@ -9,14 +9,10 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import linear_sum_assignment
 from time import time
+from tqdm import tqdm
 
-from preprocessing import *
-from frames_utils import *
-from bise_etal import *
-from classes import *
-from configs import *
+from tracker import *
 
 #%% read all detections
 init = time()
@@ -57,7 +53,7 @@ if DEBUG:
     cv2.destroyAllWindows()
 
 #%% apply NMS on frames detections
-nms_frames = apply_NMS(frames)
+#frames = apply_NMS(frames)
 
 #%% get trackelts
 tracklets = get_tracklets(frames)

@@ -12,9 +12,9 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 NUM_CORES = multiprocessing.cpu_count()
 
-from configs import *
-from classes import *
-from func_utils import helinger_dist
+from .configs import *
+from .classes import *
+from .func_utils import helinger_dist
 
 #%% NMS algorithm using ProbIoU
 
@@ -26,7 +26,7 @@ def _compute_NMS(frames):
         frame = frame.get_values()
         
         k = 0
-        boxes, joined, scores, mits, num = [],[],[],[],[]
+        boxes, joined, sum_scores, max_score, mits, num = [],[],[],[],[],[]
         for i,det1 in enumerate(frame):
             
             if i in joined:
@@ -34,7 +34,8 @@ def _compute_NMS(frames):
             
             cx1,cy1,_,_,_,a1,b1,c1 = det1[1:-1]
             boxes.append(det1[1:-1]*det1[0])
-            scores.append(det1[0])
+            sum_scores.append(det1[0])
+            max_score.append(det1[0])
             mits.append(det1[-1])
             num.append(1)
             
@@ -46,18 +47,19 @@ def _compute_NMS(frames):
                 if (1-hd)>NMS_TH:
                     joined.append(j+i+1)
                     boxes[k]  += det2[1:-1]*det2[0]
-                    scores[k] += det2[0]
+                    sum_scores[k] += det2[0]
+                    max_score[k] = max(max_score[k], det2[0])
                     mits[k] += det2[-1]
                     num[k]  += 1
                     
             k += 1
         
-        scores = np.array(scores)[...,np.newaxis]
-        boxes  = np.array(boxes)/scores
-        scores = scores[...,0]/np.array(num)
+        max_score = np.array(max_score)[...,np.newaxis]
+        sum_scores = np.array(sum_scores)[...,np.newaxis]
+        boxes  = np.array(boxes)/sum_scores
         mits = np.array([m/n>0.5 for n,m in zip(num,mits)])
         
-        yield np.concatenate([scores[...,np.newaxis],boxes,mits[...,np.newaxis]], axis=-1)
+        yield np.concatenate([max_score,boxes,mits[...,np.newaxis]], axis=-1)
         
     return __nms
 
