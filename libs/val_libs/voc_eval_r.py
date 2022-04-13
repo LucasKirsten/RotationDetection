@@ -281,7 +281,8 @@ class EVAL(object):
         recall_list += [0.0]
       if verbose:
         print('Threshold: ', ovthreshold)
-        print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, recall[-1], precision[-1], AP))
+        print("cls : {}|| Recall: {} || Precison: {}|| AP: {}"\
+              .format(cls, np.round(recall[-1]*100,2), np.round(precision[-1]*100,2), np.round(AP*100,2)))
         # print("{}_ap: {}".format(cls, AP))
         # print("{}_recall: {}".format(cls, recall[-1]))
         # print("{}_precision: {}".format(cls, precision[-1]))
@@ -327,6 +328,6 @@ class EVAL(object):
         recalls.append([th,rec])
     
     if start_th==0.5 and step_th==0.05 and verbose:
-        print('mAP50:95 : ', np.mean([ap for _,ap in mAps]))
+        print('mAP50:95 : ', np.round(np.mean([ap for _,ap in mAps])*100,2))
     
     return mAps,precisions,recalls

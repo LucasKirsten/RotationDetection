@@ -13,7 +13,7 @@ BATCH_SIZE = 1
 GPU_GROUP = "0"
 NUM_GPU = len(GPU_GROUP.strip().split(','))
 LR = 0.001 * BATCH_SIZE * NUM_GPU
-SAVE_WEIGHTS_INTE = 10000
+SAVE_WEIGHTS_INTE = 5000
 DECAY_STEP = np.array(DECAY_EPOCH, np.int32) * SAVE_WEIGHTS_INTE
 MAX_ITERATION = SAVE_WEIGHTS_INTE * MAX_EPOCH
 WARM_SETP = int(WARM_EPOCH * SAVE_WEIGHTS_INTE)
@@ -37,4 +37,8 @@ ROOT_PATH = '/workdir/msc/RotationDetection'
 PRETRAINED_CKPT = pretrain_zoo.pretrain_weight_path(NET_NAME, ROOT_PATH)
 TRAINED_CKPT = os.path.join(ROOT_PATH, 'output/trained_weights')
 
-VERSION = 'R2CNN_UFRGS_CELL_smooth_l1_loss'
+# loss
+FAST_RCNN_LOCATION_LOSS_WEIGHT = 10.0
+REG_LOSS_MODE = 3 # ProbIoU L3
+
+VERSION = 'R2CNN_UFRGS_CELL_probiou_rpnl1'

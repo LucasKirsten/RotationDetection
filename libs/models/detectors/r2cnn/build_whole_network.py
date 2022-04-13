@@ -31,7 +31,15 @@ class DetectionNetworkR2CNN(DetectionNetworkBase):
         with tf.variable_scope('build_loss'):
 
             with tf.variable_scope('rpn_loss'):
-
+                
+                #if self.cfgs.REG_LOSS_MODE == 3 or self.cfgs.REG_LOSS_MODE == 4:
+                #    mode = 'l3' if self.cfgs.REG_LOSS_MODE == 3 else 'l1'
+                #    print('\n' + '*'*10 + '\nUsing ProbIoU ' + mode + '\n' + '*'*10)
+                #    rpn_reg_loss = self.losses.probiou_loss_rpn(mode=mode,
+                #                                                bbox_pred=rpn_box_pred,
+                #                                                bbox_targets=rpn_bbox_targets,
+                #                                                label=rpn_labels)
+                #else:
                 rpn_reg_loss = self.losses.smooth_l1_loss_rpn(bbox_pred=rpn_box_pred,
                                                               bbox_targets=rpn_bbox_targets,
                                                               label=rpn_labels,
@@ -46,11 +54,20 @@ class DetectionNetworkR2CNN(DetectionNetworkBase):
                 self.losses_dict['rpn_reg_loss'] = rpn_reg_loss * self.cfgs.RPN_LOCATION_LOSS_WEIGHT
 
             with tf.variable_scope('FastRCNN_loss'):
-                reg_loss = self.losses.smooth_l1_loss_rcnn_r(bbox_pred=bbox_pred,
-                                                             bbox_targets=bbox_targets,
-                                                             label=labels,
-                                                             num_classes=self.cfgs.CLASS_NUM + 1,
-                                                             sigma=self.cfgs.FASTRCNN_SIGMA)
+                if self.cfgs.REG_LOSS_MODE == 3 or self.cfgs.REG_LOSS_MODE == 4:
+                    mode = 'l3' if self.cfgs.REG_LOSS_MODE == 3 else 'l1'
+                    print('\n' + '*'*10 + '\nUsing ProbIoU ' + mode + '\n' + '*'*10)
+                    reg_loss = self.losses.probiou_loss_rcnn_r(mode=mode,
+                                                               bbox_pred=bbox_pred,
+                                                               bbox_targets=bbox_targets,
+                                                               label=labels,
+                                                               num_classes=self.cfgs.CLASS_NUM + 1)
+                else:
+                    reg_loss = self.losses.smooth_l1_loss_rcnn_r(bbox_pred=bbox_pred,
+                                                                 bbox_targets=bbox_targets,
+                                                                 label=labels,
+                                                                 num_classes=self.cfgs.CLASS_NUM + 1,
+                                                                 sigma=self.cfgs.FASTRCNN_SIGMA)
 
                 # cls_score = tf.reshape(cls_score, [-1, cfgs.CLASS_NUM + 1])
                 # labels = tf.reshape(labels, [-1])

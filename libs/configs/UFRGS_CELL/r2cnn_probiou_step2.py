@@ -37,4 +37,8 @@ ROOT_PATH = '/workdir/msc/RotationDetection'
 PRETRAINED_CKPT = pretrain_zoo.pretrain_weight_path(NET_NAME, ROOT_PATH)
 TRAINED_CKPT = os.path.join(ROOT_PATH, 'output/trained_weights')
 
-VERSION = 'R2CNN_UFRGS_CELL_smooth_l1_loss'
+# loss
+FAST_RCNN_LOCATION_LOSS_WEIGHT = 2.0
+REG_LOSS_MODE = 4 # ProbIoU L1
+
+VERSION = 'R2CNN_UFRGS_CELL_probiou_rpnl1'
