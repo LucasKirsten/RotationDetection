@@ -8,8 +8,8 @@ Created on Thu Mar  3 20:14:23 2022
 
 DEBUG = False
 
-DATASET  = 'Dados CytoSMART' # Dados CytoSMART OR osfstorage_dataset
-DETECTOR = 'r3det' # r2cnn OR r3det
+DATASET  = 'migration_samlai'
+DETECTOR = 'r2cnn' # r2cnn OR r3det
 
 # value to filter individual detections based on minimun score
 # for normal detections
@@ -25,7 +25,7 @@ TRACK_SCORE_TH = 0.3
 TRACK_SIZE_TH  = 10
 
 # threshold to use in order to join detections on NSM algorithm
-NMS_TH = 0.6
+NMS_TH = 0.5
 
 #%% values to compute the bise et.al algorithm
 

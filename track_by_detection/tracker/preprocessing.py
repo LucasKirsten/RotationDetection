@@ -21,45 +21,73 @@ from .func_utils import helinger_dist
 def _compute_NMS(frames):
     
     def __nms(i):
+        # get frame values
         frame = frames[i]
-        frame = Frame(sorted(frame, key=lambda x:x.score, reverse=True))
-        frame = frame.get_values()
+        if len(frame)<1:
+            yield []
+        frame_name = frame[0].frame
         
-        k = 0
-        boxes, joined, sum_scores, max_score, mits, num = [],[],[],[],[],[]
-        for i,det1 in enumerate(frame):
+        # iterate over boxes to verify which to join
+        boxes2join, joined = [],[]
+        for i,d1 in enumerate(frame):
             
+            # if detection was already joined with other
             if i in joined:
                 continue
             
-            cx1,cy1,_,_,_,a1,b1,c1 = det1[1:-1]
-            boxes.append(det1[1:-1]*det1[0])
-            sum_scores.append(det1[0])
-            max_score.append(det1[0])
-            mits.append(det1[-1])
-            num.append(1)
+            # add det1 to the list boxes
+            boxes2join.append([d1])
             
-            for j,det2 in enumerate(frame[i+1:]):
+            # iterate over detections other detections
+            for j,d2 in enumerate(frame[i+1:]):
                 
-                cx2,cy2,_,_,_,a2,b2,c2 = det2[1:-1]
-                hd = helinger_dist(cx1,cy1,a1,b1,c1, cx2,cy2,a2,b2,c2)
+                # compute helinger distance between boxes
+                hd = helinger_dist(d1.cx,d1.cy,d1.a,d1.b,d1.c,\
+                                   d2.cx,d2.cy,d2.a,d2.b,d2.c)
                 
                 if (1-hd)>NMS_TH:
+                    # add box to be joined
                     joined.append(j+i+1)
-                    boxes[k]  += det2[1:-1]*det2[0]
-                    sum_scores[k] += det2[0]
-                    max_score[k] = max(max_score[k], det2[0])
-                    mits[k] += det2[-1]
-                    num[k]  += 1
-                    
-            k += 1
+                    boxes2join[-1].append(d2)
         
-        max_score = np.array(max_score)[...,np.newaxis]
-        sum_scores = np.array(sum_scores)[...,np.newaxis]
-        boxes  = np.array(boxes)/sum_scores
-        mits = np.array([m/n>0.5 for n,m in zip(num,mits)])
+        # iterate over boxes that have to be joined
+        final_boxes = Frame()
+        for boxes in boxes2join:
+            
+            if len(boxes)==1:
+                # add single detection to frame
+                final_boxes.append(boxes[0])
+                continue
+            
+            # initialize values
+            mean = np.array([[0.],[0.]])
+            corr = np.array([[0.,0.],[0.,0.]])
+            sum_score, mit_count, max_score = 0,0,0
+            for d in boxes:
+                # compute mean and corr
+                m = np.array([[d.cx],[d.cy]])
+                mean += d.score * m
+                corr += d.score * (np.array([[d.a,d.c],[d.c,d.b]]) + np.matmul(m,m.T))
+                sum_score += d.score
+                
+                # compute number of mitoses
+                mit_count += d.mit
+                # compute score (max score over detections)
+                max_score = max(max_score, d.score)
+            
+            # divide arrays by the sum score
+            mean /= sum_score
+            corr /= sum_score
+            
+            # get the calculated values to the final box
+            cx, cy = mean[0][0], mean[1][0]
+            a, b, c = corr[0][0], corr[0][1], corr[1][1]
+            mit = 1 if mit_count>len(boxes)/2 else 0
+            
+            # add detection to frame
+            final_boxes.append(Detection(frame_name,max_score,cx,cy,a=a,b=b,c=c,mit=mit))
         
-        yield np.concatenate([max_score,boxes,mits[...,np.newaxis]], axis=-1)
+        yield final_boxes
         
     return __nms
 
@@ -73,9 +101,7 @@ def apply_NMS(frames):
     generator = _compute_NMS(frames)
     nms_frames = []
     def __compute_boxes(i,frame):
-        boxes = next(generator(i))
-        frame_name = frame[0].frame
-        nms_frames.append(Frame([Detection(frame_name, *b) for b in boxes]))
+        nms_frames.append(next(generator(i)))
         
     with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
         _ = parallel(delayed(__compute_boxes)(i,frame) for i,frame in pbar)

@@ -6,25 +6,34 @@ Created on Wed Mar  2 14:26:49 2022
 """
 
 import numpy as np
-from .func_utils import get_piou
+from .func_utils import get_piou, get_from_piou
 
 class Detection():
-    def __init__(self, frame,score,cx,cy,w,h,ang,a=None,b=None,c=None,mit=0):
+    def __init__(self,frame,score,cx,cy,\
+                 w=None,h=None,ang=None,a=None,b=None,c=None,mit=0,\
+                 idx=-1, convert=True):
         self.frame = frame
         self.score = float(score)
-        self.w = float(w)
-        self.h = float(h)
-        self.ang = float(ang)
         self.mit = int(mit)
-        self.idx = -1
+        self.idx = idx
+        
         self.cx = float(cx)
         self.cy = float(cy)
         
-        if (a is None) or (b is None) or (c is None):
-            self.cx,self.cy,self.a,self.b,self.c = \
-                get_piou(self.cx,self.cy,self.w,self.h,self.ang)
-        else:
-            self.a,self.b,self.c = float(a),float(b),float(c)
+        if convert:
+            if (a is None) or (b is None) or (c is None):
+                self.w, self.h, self.ang = float(w), float(h), float(ang)
+                self.cx,self.cy,self.a,self.b,self.c = \
+                    get_piou(self.cx,self.cy,self.w,self.h,self.ang)
+                    
+            elif (w is None) or (h is None) or (ang is None):
+                self.a, self.b, self.c = float(a), float(b), float(c)
+                self.cx,self.cy,self.w,self.h,self.ang = \
+                    get_from_piou(self.cx,self.cy,self.a,self.b,self.c)
+            
+            else:
+                self.w,self.h,self.ang = float(w), float(h), float(ang)
+                self.a,self.b,self.c = float(a),float(b),float(c)
         
 class Tracklet():
     def __init__(self, detections, start):
@@ -84,8 +93,11 @@ class Frame(list):
     def get_values(self):
         return np.array([[d.score,d.cx,d.cy,d.w,d.h,d.ang,d.a,d.b,d.c,d.mit] for d in self])
     
+    def get_centers(self):
+        return np.array([[d.cx,d.cy] for d in self])
     
-    
+    def get_idxs(self):
+        return np.array([d.idx for d in self])
     
     
     

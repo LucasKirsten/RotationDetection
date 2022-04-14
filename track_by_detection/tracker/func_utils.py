@@ -6,6 +6,7 @@ Created on Wed Feb  9 18:43:43 2022
 """
 
 import numpy as np
+from numpy import linalg as LA
 import pandas as pd
 from numba import njit
 import multiprocessing
@@ -63,9 +64,9 @@ def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2, shape_weight=1):
 
 @njit
 def get_piou(cx,cy,w,h,angle):
+    # get ProbIoU values
     angle *= np.pi/180
     
-    # get ProbIoU values
     al = w**2./12.
     bl = h**2./12.
     
@@ -73,6 +74,17 @@ def get_piou(cx,cy,w,h,angle):
     b = al*np.sin(angle)**2+bl*np.cos(angle)**2
     c = 1/2*(al-bl)*np.sin(2*angle)
     return cx,cy,a,b,c
+
+@njit
+def get_from_piou(cx,cy,a,b,c):
+    
+    corr = np.array([[a,c],[c,b]])
+    val,vec = LA.eig(corr)
+    w = np.sqrt(val[0]*12)
+    h = np.sqrt(val[1]*12)
+    ang = vec[1][0]*180/np.pi
+    
+    return cx,cy,w,h,ang
 
 @njit
 def center_distances(x1,y1, x2,y2):
@@ -102,31 +114,8 @@ def Pmit(Xj, Xi, cnt_dist, d_mit):
     
     return np.exp(-np.abs(featij)/MIT_FACTOR)
 
-#%% functions to read detections
 
-def _read(path_dets, frame_imgs, threshold, mit):
-    from .classes import Detection
-    
-    detections = pd.read_csv(path_dets, header=None, sep=' ')
-    detections = detections.loc[detections.iloc[:,0].isin(frame_imgs)]
-    detections = detections.loc[detections.iloc[:,1]>threshold]
-    detections = [Detection(*det,mit) for _,det in detections.iterrows()]
-    
-    return detections
 
-def read_detections(path_normals, path_mitoses, frame_imgs):
-    
-    # open normal detections
-    print('Reading normal detections...')
-    detections = _read(path_normals, frame_imgs, NORMAL_SCORE_TH, 0)
 
-    # open mitoses detections
-    print('Reading mitoses detections...')
-    detections.extend(_read(path_mitoses, frame_imgs, MIT_SCORE_TH, 1))
-
-    # sort detections by name
-    return detections #sorted(detections, key=lambda x:x.frame)
-    
-    
     
     
