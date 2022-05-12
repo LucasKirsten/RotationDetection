@@ -1,1 +1,0 @@
-Please download trained model by this project, then put it here.

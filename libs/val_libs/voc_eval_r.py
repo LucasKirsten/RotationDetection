@@ -19,6 +19,10 @@ from libs.utils import coordinate_convert
 from utils import tools
 from libs.label_name_dict.label_dict import LabelMap
 
+import sys
+sys.path.append('../../')
+from track_by_detection.tracker.func_utils import get_piou,helinger_dist
+from track_by_detection.tracker.configs import NORMAL_SCORE_TH,MIT_SCORE_TH
 
 class EVAL(object):
   def __init__(self, cfgs):
@@ -164,8 +168,6 @@ class EVAL(object):
     # 2. get gtboxes for this class.
     class_recs = {}
     num_pos = 0
-    # if cls_name == 'person':
-    #   print ("aaa")
     for imagename in imagenames:
       R = [obj for obj in recs[imagename] if obj['name'] == cls_name]
       bbox = np.array([x['bbox'] for x in R])
@@ -205,29 +207,17 @@ class EVAL(object):
       for d in range(nd):
         R = class_recs[image_ids[d]]  # img_id is img_name
         bb = BB[d, :].astype(float)
+        #if abs(sorted_scores[d])<NORMAL_SCORE_TH:
+        #  continue
         ovmax = -np.inf
         BBGT = R['bbox'].astype(float)
         
         if BBGT.size > 0:
           # compute overlaps
-          # intersection
-          # ixmin = np.maximum(BBGT[:, 0], bb[0])
-          # iymin = np.maximum(BBGT[:, 1], bb[1])
-          # ixmax = np.minimum(BBGT[:, 2], bb[2])
-          # iymax = np.minimum(BBGT[:, 3], bb[3])
-          # iw = np.maximum(ixmax - ixmin + 1., 0.)
-          # ih = np.maximum(iymax - iymin + 1., 0.)
-          # inters = iw * ih
-          #
-          # # union
-          # uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
-          #        (BBGT[:, 2] - BBGT[:, 0] + 1.) *
-          #        (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
-          #
-          # overlaps = inters / uni
           overlaps = []
           for i in range(len(BBGT)):
             overlap = iou_rotate.iou_rotate_calculate2(np.array([bb]), BBGT[i])[0]
+            #overlap = 1. - helinger_dist(*get_piou(*bb), *get_piou(*BBGT[i][0]))
             overlaps.append(overlap)
           ovmax = np.max(overlaps)
           jmax = np.argmax(overlaps)
@@ -245,6 +235,7 @@ class EVAL(object):
     # 4. get recall, precison and AP
     fp = np.cumsum(fp)
     tp = np.cumsum(tp)
+    print(f'TP: {tp[-1]}, FP: {fp[-1]}, Total: {num_pos}')
     rec = tp / (float(num_pos) + 1e-6)
     # avoid divide by zero in case the first detection matches a difficult
     # ground truth
