@@ -19,6 +19,7 @@ class Detection():
         
         self.cx = float(cx)
         self.cy = float(cy)
+        self.area = None
         
         if convert:
             if (a is None) or (b is None) or (c is None):
@@ -34,6 +35,11 @@ class Detection():
             else:
                 self.w,self.h,self.ang = float(w), float(h), float(ang)
                 self.a,self.b,self.c = float(a),float(b),float(c)
+                
+            self.area = self.w*self.h
+                
+    def __str__(self):
+        return str(self.__dict__)
         
 class Tracklet():
     def __init__(self, detections, start):

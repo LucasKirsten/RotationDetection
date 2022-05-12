@@ -13,7 +13,7 @@ DETECTOR = 'r2cnn' # r2cnn OR r3det
 
 # value to filter individual detections based on minimun score
 # for normal detections
-NORMAL_SCORE_TH = 0.1
+NORMAL_SCORE_TH = 0.3
 # for mitoses detection
 MIT_SCORE_TH = 0.1
 

@@ -40,21 +40,21 @@ def intersection_over_union(cxA,cyA,wA,hA, cxB,cyB,wB,hB):
 EPS = 1e-3
 
 @njit
-def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2, shape_weight=1):
+def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2, shape_weight=1.):
     
-    B1 = (a1+a2)*(y1-y2)**2 + (b1+b2)*(x1-x2)**2
-    B1 += 2*(c1+c2)*(x2-x1)*(y1-y2)
+    B1 = (a1+a2)*(y1-y2)**2. + (b1+b2)*(x1-x2)**2.
+    B1 += 2.*(c1+c2)*(x2-x1)*(y1-y2)
     B1 /= (a1+a2)*(b1+b2)-(c1+c2)**2+EPS
-    B1 *= 1/4
+    B1 *= 1./4.
     
-    B2 = (a1+a2)*(b1+b2)-(c1+c2)**2
-    B2 /= 4*np.sqrt((a1*b1-c1**2)*(a2*b2-c2**2))+EPS
-    B2 = 1/2*np.log(B2)
+    B2 = (a1+a2)*(b1+b2)-(c1+c2)**2.
+    B2 /= 4.*np.sqrt((a1*b1-c1**2.)*(a2*b2-c2**2.))+EPS
+    B2 = 1./2.*np.log(B2)
     
     Bd = B1+shape_weight*B2
     Bc = np.exp(-Bd)
     
-    Hd = np.sqrt(1-Bc+EPS)
+    Hd = np.sqrt(1.-Bc+EPS)
     
     if Hd>1:
         return 1
@@ -65,14 +65,14 @@ def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2, shape_weight=1):
 @njit
 def get_piou(cx,cy,w,h,angle):
     # get ProbIoU values
-    angle *= np.pi/180
+    angle *= np.pi/180.
     
     al = w**2./12.
     bl = h**2./12.
     
-    a = al*np.cos(angle)**2+bl*np.sin(angle)**2
-    b = al*np.sin(angle)**2+bl*np.cos(angle)**2
-    c = 1/2*(al-bl)*np.sin(2*angle)
+    a = al*np.cos(angle)**2.+bl*np.sin(angle)**2.
+    b = al*np.sin(angle)**2.+bl*np.cos(angle)**2.
+    c = 1./2.*(al-bl)*np.sin(2.*angle)
     return cx,cy,a,b,c
 
 @njit
@@ -80,9 +80,9 @@ def get_from_piou(cx,cy,a,b,c):
     
     corr = np.array([[a,c],[c,b]])
     val,vec = LA.eig(corr)
-    w = np.sqrt(val[0]*12)
-    h = np.sqrt(val[1]*12)
-    ang = vec[1][0]*180/np.pi
+    w = np.sqrt(np.abs(val[0])*12.)
+    h = np.sqrt(np.abs(val[1])*12.)
+    ang = vec[1][0]*180./np.pi
     
     return cx,cy,w,h,ang
 
