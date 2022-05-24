@@ -14,7 +14,6 @@ NUM_CORES = multiprocessing.cpu_count()
 
 from .configs import *
 from .func_utils import *
-from .frames_utils import _adjust_tracklets
 
 #%% make hyphotesis
 def _make_hypotheses(tracklets, Nf):
@@ -30,7 +29,9 @@ def _make_hypotheses(tracklets, Nf):
         hyp,C,pho = [],[],[]
             
         # determine alpha value based on normal and mitoses precision
-        alpha = ALPHA_NORMAL if int(track[-1].mit)==0 else ALPHA_MITOSE
+        num_mit = np.sum([int(det.mit) for det in track])
+        num_normal = len(track) - num_mit
+        alpha = (num_normal*ALPHA_NORMAL + num_mit*ALPHA_MITOSE)/(len(track))
         
         # initialization hypothesis
         if track.start<INIT_TH:
@@ -52,6 +53,9 @@ def _make_hypotheses(tracklets, Nf):
         pho.append(ph)
         
         # translation and mitoses hypothesis
+        if track.end>=Nf:
+            yield hyp,C,pho
+        
         has_mitoses  = any([int(det.mit)==1 for det in track])
         dist_mitoses = track.start + np.array([i for i,det in enumerate(track) if int(det.mit)==1])
         term_hyp_prob = 0
@@ -59,14 +63,17 @@ def _make_hypotheses(tracklets, Nf):
         for track2 in tracklets[k+1:]:
             k2 += 1
             
-            if track2.start-track.start>TRANSP_TH:
+            if track2.start-track.end>TRANSP_TH:
                 break
             
-            if track.start==track2.start:
+            if track.start==track2.start or \
+                track.end+len(track2)>Nf or \
+                track.end>track2.start:
                 continue
             
             # calculate center distances
-            cnt_dist = center_distances(track[0].cx,track[0].cy, track2[-1].cx,track2[-1].cy)
+            cnt_dist = center_distances(track[0].cx,track[0].cy, \
+                                        track2[-1].cx,track2[-1].cy)
             if cnt_dist>CENTER_TH:
                 continue
             
@@ -91,7 +98,8 @@ def _make_hypotheses(tracklets, Nf):
                     continue
                 
                 # calculate center distances
-                cnt_dist = center_distances(track[0].cx,track[0].cy, track2[-1].cx,track2[-1].cy)
+                cnt_dist = center_distances(track[0].cx,track[0].cy, \
+                                            track2[-1].cx,track2[-1].cy)
                 if cnt_dist>CENTER_MIT_TH:
                     continue
                     
@@ -109,7 +117,7 @@ def _make_hypotheses(tracklets, Nf):
         # termination hypothesis
         Ch = np.zeros(SIZE, dtype='bool')
         Ch[[i==k for i in range(SIZE)]] = 1
-        ph = 1 - term_hyp_prob
+        ph = max(1 - term_hyp_prob, Pterm(track, Nf))
         
         hyp.append(f'term_{k}')
         C.append(Ch)
@@ -139,12 +147,49 @@ def _get_C_pho_matrixes(tracklets, Nf):
     
     return np.array(C), np.float32(pho), hyp
 
+#%% adjust the tracklets to the frames
+
+def _adjust_tracklets(tracklets, hyphotesis):
+    
+    # sort hyphotesis based on the tracklet position
+    hyphotesis = sorted(hyphotesis, key=lambda x:int(x.split('_')[-1].split(',')[0]))
+    
+    # solve initial tracklets and store the other hyphotesis
+    final_tracklets = {}
+    transl,mit = [],[]
+    for hyp in hyphotesis:
+        # verify the hyphotesis name and its values
+        mode,idxs = hyp.split('_')
+        if 'init' in mode:
+            final_tracklets[idxs] = tracklets[int(idxs)]
+        elif 'transl' in mode:
+            idx1,idx2 = idxs.split(',')
+            transl.append([idx1,idx2])
+        elif 'mit' in mode:
+            idx1,idx2 = idxs.split(',')
+            final_tracklets[idx2] = tracklets[int(idx2)]
+            mit.append([idx1,idx2])
+            
+    # adjust tracklets by mitoses
+    for idx1,idx2 in mit:
+        final_tracklets[idx2] = tracklets[int(idx2)]
+            
+    # join tracklets by translation
+    for idx1,idx2 in transl:
+        if not (idx1 in final_tracklets):
+            final_tracklets[idx1] = tracklets[int(idx2)]
+        else:
+            final_tracklets[idx1].join(tracklets[int(idx2)])
+        final_tracklets[idx2] = final_tracklets.pop(idx1)
+            
+    return list(final_tracklets.values())
+
 #%% solve integer optimization problem
 
 def solve_tracklets(tracklets, Nf):
     
     # get hypothesis matrixes
-    C, pho, hyp = _get_C_pho_matrixes(tracklets, Nf)
+    C, pho, hyp = _get_C_pho_matrixes(np.copy(tracklets), Nf)
     
     x = cvxpy.Variable((len(pho),1), boolean=True)
     
@@ -161,7 +206,7 @@ def solve_tracklets(tracklets, Nf):
     hyp = np.array(hyp)[x==1]
     
     print('Adjusting final tracklets...')
-    final_tracklets = _adjust_tracklets(tracklets, hyp)
+    final_tracklets = _adjust_tracklets(np.copy(tracklets), hyp)
             
     return final_tracklets
 

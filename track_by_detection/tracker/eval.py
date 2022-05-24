@@ -11,25 +11,25 @@ from .classes import Frame
 
 def evaluate(true_tracklets, pred_tracklets, num_frames):
     
-    # convert tracklets to frames from predictions
+    # convert tracklets from predictions to frames
     pred_frames = [Frame() for _ in range(num_frames+1)]
     for track in pred_tracklets:
         fr_idx = track.start
         for d_idx,det in enumerate(track):
             pred_frames[fr_idx+d_idx].append(det)
     
-    # convert tracklets to frames from annotations
-    pred_ann = [Frame() for _ in range(num_frames+1)]
+    # convert tracklets from annotations to frames
+    true_frames = [Frame() for _ in range(num_frames+1)]
     for track in true_tracklets:
         fr_idx = track.start
         for d_idx,det in enumerate(track):
-            pred_ann[fr_idx+d_idx].append(det)
+            true_frames[fr_idx+d_idx].append(det)
     
     # define accumulator
     acc = mm.MOTAccumulator(auto_id=True)
     
     # add all detections to accumulator
-    for pred,true in zip(pred_frames, pred_ann):
+    for pred,true in zip(pred_frames, true_frames):
         c_pred = pred.get_centers()
         c_true = true.get_centers()
         

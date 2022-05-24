@@ -6,6 +6,7 @@ Created on Sun Mar  6 23:09:07 2022
 """
 
 from .configs import *
+from .draw_utils import *
 from .bise_etal import solve_tracklets
 from .read_utils import read_detections, read_annotations
 from .preprocessing import apply_NMS

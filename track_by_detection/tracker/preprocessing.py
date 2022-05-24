@@ -20,15 +20,13 @@ from .func_utils import helinger_dist
 
 def _compute_NMS(frames):
     
-    def __nms(i):
-        # get frame values
-        frame = frames[i]
+    for frame in frames:
         if len(frame)<1:
             yield []
-        frame_name = frame[0].frame
+        frame_name = frame.name
         
         # iterate over boxes to verify which ones to join
-        boxes2join, joined = [],[]
+        boxes2join, joined = [],set()
         for i,d1 in enumerate(frame):
             
             # if detection was already joined with other
@@ -38,7 +36,7 @@ def _compute_NMS(frames):
             # add det1 to the list boxes
             boxes2join.append([d1])
             
-            # iterate over detections other detections
+            # iterate over the other detections
             for j,d2 in enumerate(frame[i+1:]):
                 
                 # if they belong to different classes, continue
@@ -51,11 +49,11 @@ def _compute_NMS(frames):
                 
                 if (1-hd)>NMS_TH:
                     # add box to be joined
-                    joined.append(j+i+1)
+                    joined.add(j+i+1)
                     boxes2join[-1].append(d2)
         
         # iterate over boxes that have to be joined
-        final_boxes = Frame()
+        final_boxes = Frame(name=frame_name)
         for boxes in boxes2join:
             
             if len(boxes)==1:
@@ -89,26 +87,17 @@ def _compute_NMS(frames):
             a, b, c = corr[0][0], corr[0][1], corr[1][1]
             
             # add detection to frame
-            final_boxes.append(Detection(frame_name,max_score,cx,cy,a=a,b=b,c=c,mit=d.mit))
+            final_boxes.append(Detection(frame_name,max_score,cx,cy,\
+                                         a=a,b=b,c=c,mit=d.mit))
         
         yield final_boxes
-        
-    return __nms
 
 def apply_NMS(frames):
-    if not isinstance(frames, list):
-        frames = [frames]
     
-    pbar = tqdm(enumerate(frames), total=len(frames))
+    pbar = tqdm(_compute_NMS(frames), total=len(frames))
     pbar.set_description('Applying NMS to frames')
-    
-    generator = _compute_NMS(frames)
-    nms_frames = [0]*len(frames)
-    def __compute_boxes(i,frame):
-        nms_frames[i] = next(generator(i))
-        
     with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
-        _ = parallel(delayed(__compute_boxes)(i,frame) for i,frame in pbar)
+        nms_frames = parallel(delayed(lambda x:x)(x) for x in pbar)
         
     return nms_frames
 

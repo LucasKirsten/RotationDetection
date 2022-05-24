@@ -13,18 +13,18 @@ DETECTOR = 'r2cnn' # r2cnn OR r3det
 
 # value to filter individual detections based on minimun score
 # for normal detections
-NORMAL_SCORE_TH = 0.3
+NORMAL_SCORE_TH = 0.
 # for mitoses detection
-MIT_SCORE_TH = 0.1
+MIT_SCORE_TH = 0.
 
 # values to filter tracklets based on the number of detections and score
 # minimun score to validate a tracklet as valid (score for tracklets are the
 # mean score value for all detections)
-TRACK_SCORE_TH = 0.3
+TRACK_SCORE_TH = 0.
 # minimun size of the tracklet to have at least SCORE_TH to be valid
-TRACK_SIZE_TH  = 10
+TRACK_SIZE_TH  = 0.
 
-# threshold to use in order to join detections on NSM algorithm
+# threshold to use in order to join detections on NMS algorithm
 NMS_TH = 0.5
 
 #%% values to compute the bise et.al algorithm
@@ -52,19 +52,25 @@ CENTER_MIT_TH = 50
 
 # values to adjust the probabilities distributions
 # higher values means larger probabilites
-INIT_FACTOR = 5
-LINK_FACTOR = 300
-MIT_FACTOR  = 300
+INIT_FACTOR = 20
+LINK_FACTOR = 800
+MIT_FACTOR  = 800
 
 #%% values that were calculated previously
 
 # alpha values for the networks (based on their P50 values)
-# add values for each detector
+# add values for each detector (normal, mitose)
 ALPHAS = {
-    'r2cnn':(0.3251,0.4721),
-    'r3det':(0.7207,0.8806)
+    'dcl':(0.7181,0.6335),
+    'csl':(0.7242,0.5398),
+    'rsdet':(0.7433,0.6360),
+    'retinanet':(0.7525,0.5647),
+    'r3det':(0.7515,0.6675),
+    'r3detdcl':(0.7550,0.6263),
+    'r2cnn':(0.7733,0.6965)
 }
 
+# map values according to the alpha values above
 ALPHA_NORMAL = ALPHAS[DETECTOR][0]
 ALPHA_MITOSE = ALPHAS[DETECTOR][1]
 

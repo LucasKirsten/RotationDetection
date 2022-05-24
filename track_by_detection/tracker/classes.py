@@ -78,12 +78,14 @@ class Tracklet():
     # join two tracklets (e.g., for translation hyphotesis)
     def join(self, tracklet):
         
-        # if there are gaps between tracklets fill them
-        if self.end - tracklet.start>0:
-            dx = self.end-tracklet.start
+        assert tracklet.start>=self.end, 'Trying to join non consecutive tracklets!'
+        
+        # if there are gaps between tracklets, linearly fill them
+        if tracklet.start - self.end>0:
+            dx = tracklet.start - self.end
             d0 = self[-1]
             df = tracklet[0]
-            for i in range(self.end-tracklet.start):
+            for i in range(dx):
                 
                 parms = {'cx':None,'cy':None,'w':None,'h':None,'ang':None}
                 for p in parms.keys():
@@ -96,8 +98,13 @@ class Tracklet():
             self.append(det)
         
 class Frame(list):
+    def __init__(self, values:list=[], name:str=None):
+        super(Frame, self).__init__(values)
+        self.name = name
+    
     def get_values(self):
-        return np.array([[d.score,d.cx,d.cy,d.w,d.h,d.ang,d.a,d.b,d.c,d.mit] for d in self])
+        return np.array([[d.score,d.cx,d.cy,d.w,d.h,d.ang,d.a,d.b,d.c,d.mit]\
+                         for d in self])
     
     def get_centers(self):
         return np.array([[d.cx,d.cy] for d in self])

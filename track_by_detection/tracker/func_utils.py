@@ -58,7 +58,7 @@ def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2, shape_weight=1.):
     
     if Hd>1:
         return 1
-    elif Hd<0:
+    elif Hd<0 or np.isnan(Hd):
         return 0
     return Hd
 
@@ -93,7 +93,7 @@ def center_distances(x1,y1, x2,y2):
 #%% functions to calculate probabilities
 
 def PFP(Xk, alpha, score):
-    return ((1-score)*alpha)/len(Xk)
+    return (1-alpha)**len(Xk)
 
 def PTP(Xk, alpha, score):
     return 1 - PFP(Xk, alpha, score)
@@ -102,9 +102,13 @@ def Pini(Xk):
     dt0 = Xk.start
     return np.exp(-dt0/INIT_FACTOR)
 
+def Pterm(Xk, total_frames):
+    dt0 = total_frames - Xk.end
+    return np.exp(-dt0/INIT_FACTOR)
+
 def Plink(Xj, Xi, cnt_dist):
     featij = cnt_dist
-    featij *= abs(Xj.start-Xi.start+1)
+    featij *= Xj.end-Xi.start+1
     
     return np.exp(-np.abs(featij)/LINK_FACTOR)
 
