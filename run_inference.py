@@ -41,17 +41,17 @@ elif model_name=='r2cnn':
 from libs.val_libs.voc_eval_r import EVAL
 from tools.test_ufrgscell_base import TestUFRGSCELL
 
-class TestUFRGSCELLGWD(TestUFRGSCELL):
+class _TestUFRGSCELL(TestUFRGSCELL):
 
     def eval(self):
         dcl = DetectionNetwork(cfgs=self.cfgs, is_training=False)
-
-        all_boxes_r = self.eval_with_plac(img_dir=self.args.img_dir, det_net=dcl,
-                                          image_ext=self.args.image_ext)
-
-        imgs = os.listdir(self.args.img_dir)
         
-        real_test_imgname_list = [i.split(self.args.image_ext)[0] for i in imgs]
+        imgs = os.listdir(self.args.img_dir)
+        image_ext = os.path.split(imgs)[0].split('.')[-1]
+        all_boxes_r = self.eval_with_plac(img_dir=self.args.img_dir, det_net=dcl,
+                                          image_ext=image_ext)
+        
+        real_test_imgname_list = [i.split(image_ext)[0] for i in imgs]
 
         print(10 * "**")
         print('rotation eval:')
@@ -63,5 +63,5 @@ class TestUFRGSCELLGWD(TestUFRGSCELL):
 
 if __name__ == '__main__':
 
-    tester = TestUFRGSCELLGWD(cfgs)
+    tester = _TestUFRGSCELL(cfgs)
     tester.eval()
