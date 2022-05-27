@@ -47,7 +47,7 @@ class _TestUFRGSCELL(TestUFRGSCELL):
         dcl = DetectionNetwork(cfgs=self.cfgs, is_training=False)
         
         imgs = os.listdir(self.args.img_dir)
-        image_ext = os.path.split(imgs[0])[-1].split('.')[-1]
+        image_ext = '.'+os.path.split(imgs[0])[-1].split('.')[-1]
         all_boxes_r = self.eval_with_plac(img_dir=self.args.img_dir, det_net=dcl,
                                           image_ext=image_ext)
         
