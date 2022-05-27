@@ -36,6 +36,7 @@ class Detection():
                 self.w,self.h,self.ang = float(w), float(h), float(ang)
                 self.a,self.b,self.c = float(a),float(b),float(c)
                 
+        if self.w and self.h:
             self.area = self.w*self.h
                 
     def __str__(self):
@@ -78,18 +79,18 @@ class Tracklet():
     # join two tracklets (e.g., for translation hyphotesis)
     def join(self, tracklet):
         
-        assert tracklet.start>=self.end, 'Trying to join non consecutive tracklets!'
+        assert tracklet.start>self.end, 'Trying to join non consecutive tracklets!'
         
         # if there are gaps between tracklets, linearly fill them
-        if tracklet.start - self.end>0:
-            dx = tracklet.start - self.end
+        if tracklet.start - self.end > 1:
+            dx = tracklet.start - self.end - 1
             d0 = self[-1]
             df = tracklet[0]
             for i in range(dx):
                 
                 parms = {'cx':None,'cy':None,'w':None,'h':None,'ang':None}
                 for p in parms.keys():
-                    parms[p] = d0.__dict__[p] + (df.__dict__[p]-d0.__dict__[p])/dx*(i+1)
+                    parms[p] = d0.__dict__[p] + (i+1)*(df.__dict__[p]-d0.__dict__[p])/dx
                 parms.update({'frame':None,'score':0,'mit':0})
                 
                 self.append(Detection(**parms))
@@ -108,6 +109,12 @@ class Frame(list):
     
     def get_centers(self):
         return np.array([[d.cx,d.cy] for d in self])
+    
+    def get_iou_values(self):
+        return np.array([[d.cx,d.cy,d.w,d.h,d.ang] for d in self])
+    
+    def get_hd_values(self):
+        return np.array([[d.cx,d.cy,d.a,d.b,d.c] for d in self])
     
     def get_idxs(self):
         return np.array([d.idx for d in self])

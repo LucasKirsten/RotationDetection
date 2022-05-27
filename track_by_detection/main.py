@@ -7,10 +7,7 @@ Created on Wed Jan 19 22:11:31 2022
 
 import os
 import cv2
-import numpy as np
-import matplotlib.pyplot as plt
 from time import time
-from tqdm import tqdm
 
 from tracker import *
 
@@ -44,7 +41,7 @@ nms_frames = apply_NMS(frames)
 tracklets = get_tracklets(nms_frames)
 
 #%% solve tracklets
-final_tracklets = solve_tracklets(tracklets, Nf)
+final_tracklets = solve_tracklets(tracklets, Nf, max_iterations=100)
 
 print('Elapsed time: ', time()-init)
 
@@ -54,18 +51,18 @@ if annotations:
     print(evaluate(annotations, final_tracklets, Nf))
 
 #%% draw trackings
-draw_tracklets(final_tracklets, nms_frames, path_imgs, img_format='.png', plot=True)
+draw_tracklets(tracklets, nms_frames, path_imgs, img_format='.png', plot=DEBUG)
 
 print('Elapsed time with drawing: ', time()-init)
 
 #%%
     
-h,w,c = frame_imgs[0].shape
-out = cv2.VideoWriter(f'./{DATASET}_{DETECTOR}_{len(frames)}.avi',\
-                      cv2.VideoWriter_fourcc(*'XVID'), 10.0, (w,h))
-for img in frame_imgs:
-    out.write(img)
-out.release()
+# h,w,c = frame_imgs[0].shape
+# out = cv2.VideoWriter(f'./{DATASET}_{DETECTOR}_{len(frames)}.avi',\
+#                       cv2.VideoWriter_fourcc(*'XVID'), 10.0, (w,h))
+# for img in frame_imgs:
+#     out.write(img)
+# out.release()
 
 '''
 TODO:
@@ -74,12 +71,3 @@ TODO:
 '''
 
 #%%
-
-
-
-
-
-
-
-
-

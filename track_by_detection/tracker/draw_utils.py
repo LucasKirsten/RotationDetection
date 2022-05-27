@@ -9,13 +9,15 @@ import os
 import cv2
 import numpy as np
 from tqdm import tqdm
+import multiprocessing
+from joblib import Parallel, delayed
+NUM_CORES = multiprocessing.cpu_count()
 
 def draw_detections(frames, path_imgs, img_format='.png', plot=True):
     
-    frame_imgs = []
     pbar = tqdm(frames)
     pbar.set_description('Reading frames')
-    for frm in pbar:
+    def _draw_frame(frm):
         img_name = frm.name
         img_name = os.path.join(path_imgs, img_name+img_format)
         img = cv2.imread(img_name)[...,::-1]
@@ -29,7 +31,10 @@ def draw_detections(frames, path_imgs, img_format='.png', plot=True):
             color = (0,0,255) if int(mit)==0 else (0,255,0)
             draw = cv2.drawContours(draw, [box], -1, color, 2)
             
-        frame_imgs.append(draw)
+        return draw
+        
+    with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
+        frame_imgs = parallel(delayed(_draw_frame)(frm) for frm in pbar)
         
     if plot:
         for img in frame_imgs:
@@ -49,7 +54,8 @@ def draw_tracklets(tracklets, frames, path_imgs, img_format='.png', plot=True):
 
     pbar = tqdm(enumerate(tracklets), total=len(tracklets))
     pbar.set_description('Drawing tracklets')
-    for ti,track in pbar:
+    def _draw_track(ti, track):
+        nonlocal frame_imgs, colors
         
         start = track.start
         det_id = track[0].idx
@@ -67,9 +73,14 @@ def draw_tracklets(tracklets, frames, path_imgs, img_format='.png', plot=True):
             frame_imgs[start+di] = cv2.putText(frame_imgs[start+di], str(det_id), (int(cx),int(cy)), \
                                        cv2.FONT_HERSHEY_SIMPLEX, 1, color, 1, cv2.LINE_AA)
             #frame_imgs[start+di] = cv2.circle(frame_imgs[start+di], (int(cx),int(cy)), 2, color, 2)
+    
+    with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
+        _ = parallel(delayed(_draw_track)(ti,track) for ti,track in pbar)
 
     if plot:
         for img in frame_imgs:
             cv2.imshow('', img)
             cv2.waitKey(0)
         cv2.destroyAllWindows()
+        
+    return frame_imgs

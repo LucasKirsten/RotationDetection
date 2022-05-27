@@ -112,10 +112,8 @@ def Plink(Xj, Xi, cnt_dist):
     
     return np.exp(-np.abs(featij)/LINK_FACTOR)
 
-def Pmit(Xj, Xi, cnt_dist, d_mit):
-    featij = cnt_dist
-    featij *= d_mit*abs(Xj.start-Xi.start+1)
-    
+def Pmit(cnt_dist, d_mit):
+    featij = cnt_dist*(d_mit+1)
     return np.exp(-np.abs(featij)/MIT_FACTOR)
 
 

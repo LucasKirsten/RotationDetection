@@ -9,7 +9,7 @@ Created on Thu Mar  3 20:14:23 2022
 DEBUG = False
 
 DATASET  = 'migration_samlai'
-DETECTOR = 'r2cnn' # r2cnn OR r3det
+DETECTOR = 'r2cnn'
 
 # value to filter individual detections based on minimun score
 # for normal detections
@@ -35,6 +35,10 @@ NMS_TH = 0.5
 # higher values means that more cells can be consider as the starters
 INIT_TH = 10
 
+# maximal number of detections to a frame be a possible false positive
+# higher values means that longer tracklets can be consider false positives
+FP_TH = 5
+
 # distance between frames to consider transposition
 # higher values means that higher gaps allows to join detections
 TRANSP_TH = 20
@@ -44,7 +48,7 @@ TRANSP_TH = 20
 CENTER_TH = 100
 
 # distance between frames to consider mitoses
-# higher values means that higher gaps allows to consider a mitoses event
+# higher values means that allows higher gaps to consider a mitoses event
 MIT_TH = 20
 
 # distance between cell centers in pixels for mitoses

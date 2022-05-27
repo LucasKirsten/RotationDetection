@@ -21,8 +21,8 @@ from libs.label_name_dict.label_dict import LabelMap
 
 import sys
 sys.path.append('../../')
-from track_by_detection.tracker.func_utils import get_piou,helinger_dist
-from track_by_detection.tracker.configs import NORMAL_SCORE_TH,MIT_SCORE_TH
+#from track_by_detection.tracker.func_utils import get_piou,helinger_dist
+#from track_by_detection.tracker.configs import NORMAL_SCORE_TH,MIT_SCORE_TH
 
 class EVAL(object):
   def __init__(self, cfgs):
