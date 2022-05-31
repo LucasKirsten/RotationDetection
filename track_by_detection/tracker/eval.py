@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar 29 13:51:02 2022
+Function to evaluate the final tracklet results.
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
 import numpy as np
@@ -14,6 +14,7 @@ from .func_utils import helinger_dist, intersection_over_union
 
 @njit(parallel=True, cache=True)
 def _build_hd_matrix(frm0, frm1):
+    # compute the distances using the Helinger distance
     costs = np.zeros((len(frm0), len(frm1)))
     for j in range(costs.shape[0]):
         for k in range(costs.shape[1]):
@@ -23,26 +24,50 @@ def _build_hd_matrix(frm0, frm1):
                                cx1,cy1,a1,b1,c1)
             iou = intersection_over_union(cx0,cy0,w0,h0,
                                           cx1,cy1,w1,h1)
-            costs[j,k] = hd if iou>0 else np.nan
+            costs[k,j] = hd if iou>0 else np.nan
     return costs
 
-def evaluate(true_tracklets, pred_tracklets, num_frames, dist_method:str='hd'):
+def evaluate(true_tracklets:list, pred_tracklets:list, num_frames:int,\
+             dist_method:str='hd') -> str:
+    '''
+    Evaluate the tracklets results using the MOTA metric.
+
+    Parameters
+    ----------
+    true_tracklets : list
+        List of true tracklets.
+    pred_tracklets : list
+        List of predicted tracklets.
+    num_frames : int
+        Total number of frames.
+    dist_method : str, optional
+        Method to compute the distance between true and predicted detections on each frame.\
+            Should be either center, iou or hd. The default is 'hd'.
+
+    Returns
+    -------
+    strsummary : str
+        Summary of the results.
+
+    '''
     
     assert dist_method in ('center', 'iou', 'hd'), \
         'Distance method should be either center, iou or hd!'
     
     # convert tracklets from predictions to frames
     pred_frames = [Frame() for _ in range(num_frames+1)]
-    for track in pred_tracklets:
+    for i,track in enumerate(pred_tracklets):
         fr_idx = track.start
         for d_idx,det in enumerate(track):
+            det.idx = i
             pred_frames[fr_idx+d_idx].append(det)
     
     # convert tracklets from annotations to frames
     true_frames = [Frame() for _ in range(num_frames+1)]
-    for track in true_tracklets:
+    for i,track in enumerate(true_tracklets):
         fr_idx = track.start
         for d_idx,det in enumerate(track):
+            det.idx = i
             true_frames[fr_idx+d_idx].append(det)
     
     # define accumulator
@@ -54,15 +79,19 @@ def evaluate(true_tracklets, pred_tracklets, num_frames, dist_method:str='hd'):
         idx_pred = pred.get_idxs()
         idx_true = true.get_idxs()
         
-        # compute distance between predicted and true detections
+        # compute distance between predicted and true detections using 
+        # the chose metric
+        if len(true)<1 or len(pred)<1:
+            continue
+        
         if dist_method=='center':
             c_pred = pred.get_centers()
             c_true = true.get_centers()
             dists = mm.distances.norm2squared_matrix(c_true, c_pred)
             
         elif dist_method=='iou':
-            c_pred = pred.get_iou_values()[:-1]
-            c_true = true.get_iou_values()[:-1]
+            c_pred = pred.get_iou_values()[:,:-1]
+            c_true = true.get_iou_values()[:,:-1]
             dists = mm.distances.iou_matrix(c_true, c_pred)
             
         elif dist_method=='hd':

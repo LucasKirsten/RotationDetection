@@ -1,17 +1,56 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Mar  2 14:26:49 2022
+Auxiliar Classes for the tracking algorithm
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
 import numpy as np
 from .func_utils import get_piou, get_from_piou
 
 class Detection():
-    def __init__(self,frame,score,cx,cy,\
-                 w=None,h=None,ang=None,a=None,b=None,c=None,mit=0,\
-                 idx=-1, convert=True):
+    def __init__(self,frame:str,score:float,cx:float,cy:float,\
+                 w:float=None,h:float=None,ang:float=None,\
+                 a:float=None,b:float=None,c:float=None,mit:int=0,\
+                 idx:int=-1, convert:bool=True):
+        '''
+        Define a detection.
+
+        Parameters
+        ----------
+        frame : str
+            Name of the detection frame.
+        score : float
+            Detection score.
+        cx : float
+            x center position.
+        cy : float
+            y center position.
+        w : float, optional
+            Width size. The default is None.
+        h : float, optional
+            Height size. The default is None.
+        ang : float, optional
+            Angle value. The default is None.
+        a : float, optional
+            a value from the covariance matrix. The default is None.
+        b : float, optional
+            b value from the covariance matrix. The default is None.
+        c : float, optional
+            c value from the covariance matrix. The default is None.
+        mit : int, optional
+            If detection is mitose (mit=1) or not (mit=0). The default is 0.
+        idx : int, optional
+            Index value of detection (detection with same idx belongs to same tracklet). The default is -1.
+        convert : bool, optional
+            If to convert values of one representation to another (e.g., standard (cx,cy,w,h,ang) to (cx,cy,a,b,c)). The default is True.
+
+        Returns
+        -------
+        None.
+
+        '''
+        
         self.frame = frame
         self.score = float(score)
         self.mit = int(mit)
@@ -35,15 +74,34 @@ class Detection():
             else:
                 self.w,self.h,self.ang = float(w), float(h), float(ang)
                 self.a,self.b,self.c = float(a),float(b),float(c)
+        
+        else:
+            self.w,self.h,self.ang,self.a,self.b,self.c = 0,0,0,0,0,0
                 
-        if self.w and self.h:
+        if self.w is not None and self.h is not None:
             self.area = self.w*self.h
                 
     def __str__(self):
         return str(self.__dict__)
         
 class Tracklet():
-    def __init__(self, detections, start):
+    def __init__(self, detections, start:int):
+        '''
+        Define a Tracklet.
+
+        Parameters
+        ----------
+        detections : list or Detection
+            List of detections, or single detection to compose Tracklet.
+        start : int
+            Start value relative to the frames.
+
+        Returns
+        -------
+        None.
+
+        '''
+        
         if type(detections)==list:
             self.detections = detections
             self.sum_score = np.sum([d.score for d in detections])
@@ -78,6 +136,19 @@ class Tracklet():
     
     # join two tracklets (e.g., for translation hyphotesis)
     def join(self, tracklet):
+        '''
+        Join one tracklet to another.
+
+        Parameters
+        ----------
+        tracklet : Tracklet
+            The tracklet to be joined with.
+
+        Returns
+        -------
+        None.
+
+        '''
         
         assert tracklet.start>self.end, 'Trying to join non consecutive tracklets!'
         
@@ -100,6 +171,21 @@ class Tracklet():
         
 class Frame(list):
     def __init__(self, values:list=[], name:str=None):
+        '''
+        Define a Frame.
+
+        Parameters
+        ----------
+        values : list, optional
+            A list of values to the initially define the Frame list. The default is [].
+        name : str, optional
+            Frame image name. The default is None.
+
+        Returns
+        -------
+        None.
+
+        '''
         super(Frame, self).__init__(values)
         self.name = name
     

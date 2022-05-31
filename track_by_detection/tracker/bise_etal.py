@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Feb  9 18:49:44 2022
+Code for solving the Bise et al algorithm
+"RELIABLE CELL TRACKING BY GLOBAL DATA ASSOCIATION"
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
 import numpy as np
@@ -24,11 +25,12 @@ def _make_hypotheses(tracklets, Nf):
     Nx = len(tracklets)
     SIZE = 2*Nx+Nf
     
-    #for k,track in enumerate(tracklets):
+    # define generator for hyphoteses
     def __get_hyphoteses(k):
         
         track = tracklets[k]
-    
+        
+        # intialize variables
         hyp,C,pho = [],[],[]
             
         # determine alpha value based on normal and mitoses precision
@@ -155,6 +157,8 @@ def _get_C_pho_matrixes(tracklets, Nf):
 
 @njit(parallel=True)
 def _build_costs(vals0, vals1):
+    # Hungarian algorithm to join tracklets
+    
     costs = np.zeros((len(vals0), len(vals1)))
     for j in range(costs.shape[0]):
         for k in range(costs.shape[1]):
@@ -234,14 +238,42 @@ def _adjust_tracklets(tracklets, hyphotesis, merge_term=False):
         for row,col in zip(row_ind, col_ind):
             if costs[row][col]<1:
                 final_tracklets[final_idx[row]].join(tracklets[term[col]])
+                final_tracklets[term[col]] = final_tracklets.pop(final_idx[row])
             else:
-                final_tracklets[final_idx[row]] = tracklets[term[col]]
+                final_tracklets[term[col]] = tracklets[term[col]]
+                
+        # add not joined termination hyphotesis
+        col_ind = [i for i in range(len(term_vals)) if not i in col_ind]
+        for col in col_ind:
+            final_tracklets[term[col]] = tracklets[term[col]]
             
     return list(final_tracklets.values())
 
 #%% solve integer optimization problem
 
-def solve_tracklets(tracklets, Nf, squeeze_factor=0.8, max_iterations=100):
+def solve_tracklets(tracklets:list, Nf:int, squeeze_factor:float=0.8, max_iterations:int=100) -> list:
+    '''
+    
+    Solve the tracklets using the Bise et al algorithm.
+
+    Parameters
+    ----------
+    tracklets : list
+        List of Tracklets.
+    Nf : int
+        Total number of frames.
+    squeeze_factor : float, optional
+        Value to squeeze the INIT_TH, FP_TH after each iteration. The default is 0.8.
+    max_iterations : int, optional
+        Maximum number of iterations. The default is 100.
+
+    Returns
+    -------
+    list
+        List of solved Tracklets.
+
+    '''
+    
     global INIT_TH, FP_TH, TRANSP_TH, CENTER_TH, MIT_TH, CENTER_MIT_TH
     
     last_track_size = len(tracklets)

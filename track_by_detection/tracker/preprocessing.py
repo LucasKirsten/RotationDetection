@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar  4 14:23:50 2022
+Preprocessing functions.
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
 import numpy as np
@@ -92,7 +92,21 @@ def _compute_NMS(frames):
         
         yield final_boxes
 
-def apply_NMS(frames):
+def apply_NMS(frames:list) -> list:
+    '''
+    Apply Gaussian NMS algorithm to a list of frames.
+
+    Parameters
+    ----------
+    frames : list
+        List of frames with detections.
+
+    Returns
+    -------
+    list
+        NMS frames detections.
+
+    '''
     
     pbar = tqdm(_compute_NMS(frames), total=len(frames))
     pbar.set_description('Applying NMS to frames')

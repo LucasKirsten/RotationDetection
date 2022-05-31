@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Mar  3 20:14:23 2022
+Define global configuration values
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 #%% values to be set by the user
 
@@ -10,6 +10,10 @@ DEBUG = False
 
 DATASET  = 'migration_samlai'
 DETECTOR = 'r2cnn'
+
+path_imgs = f'./frames/{DATASET}/frames'
+path_dets = f'./frames/{DATASET}/{DETECTOR}'
+path_gt   = f'./frames/{DATASET}/migration.csv'
 
 # value to filter individual detections based on minimun score
 # for normal detections
@@ -43,13 +47,13 @@ FP_TH = 5
 # higher values means that higher gaps allows to join detections
 TRANSP_TH = 20
 
-# distance between cell centers in pixels
+# distance between cell centers in pixels to consider joining
 # higher values means that cells far appart can be joined in tracklets
 CENTER_TH = 100
 
 # distance between frames to consider mitoses
 # higher values means that allows higher gaps to consider a mitoses event
-MIT_TH = 20
+MIT_TH = 50
 
 # distance between cell centers in pixels for mitoses
 CENTER_MIT_TH = 50
@@ -57,8 +61,8 @@ CENTER_MIT_TH = 50
 # values to adjust the probabilities distributions
 # higher values means larger probabilites
 INIT_FACTOR = 20
-LINK_FACTOR = 800
-MIT_FACTOR  = 800
+LINK_FACTOR = 1000
+MIT_FACTOR  = 1000
 
 #%% values that were calculated previously
 

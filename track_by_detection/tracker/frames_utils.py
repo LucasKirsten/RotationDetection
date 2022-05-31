@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Feb  9 18:33:00 2022
+Functions to handle frames/tracklets.
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
 import numpy as np
@@ -20,7 +20,23 @@ from .classes import *
 
 #%% get the frames from detections
 
-def get_frames(detections, frame_names):
+def get_frames(detections:list, frame_names:list) -> list:
+    '''
+    Return a list of frames from a list of detections.
+
+    Parameters
+    ----------
+    detections : list
+        List of detections.
+    frame_names : list
+        List of the frame image names.
+
+    Returns
+    -------
+    list
+        Detections aggregated into frames.
+
+    '''
     
     # merge detections into frames
     frames = {name:Frame(name=name) for name in frame_names}
@@ -38,6 +54,7 @@ def get_frames(detections, frame_names):
 
 @njit(parallel=True, cache=True)
 def _build_costs(frm0, frm1):
+    # build cost matrix for the Hungarian algorithm
     costs = np.zeros((len(frm0), len(frm1)))
     for j in range(costs.shape[0]):
         for k in range(costs.shape[1]):
@@ -50,7 +67,21 @@ def _build_costs(frm0, frm1):
             costs[j,k] = hd if iou>0 else 1
     return costs
 
-def get_tracklets(frames):
+def get_tracklets(frames:list) -> list:
+    '''
+    Get a list of tracklets from a list of frames.
+
+    Parameters
+    ----------
+    frames : list
+        List of frames.
+
+    Returns
+    -------
+    list
+        Aggregated tracklets from frames detections.
+
+    '''
     # add a indexing value for the first frame detections
     for n,det in enumerate(frames[0]):
         det.idx = n
