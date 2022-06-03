@@ -158,3 +158,5 @@ tools/*/test_masra_td500/*
 tools/*/test_ohd_sjtu/*
 output/summary/*
 dataloader/tfrecord/*
+
+!track_by_detection/images/*
