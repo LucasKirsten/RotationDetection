@@ -5,7 +5,10 @@ This repository contains the code for cell tracking by detection using OBB detec
 ## Topics
 
 - [Getting started](#getting-started)
-- [Setting up](#setting-up)
+- [Running](#running)
+- [Evaluation](#evaluation)
+- [Example](#example)
+- [(optional) OBB detection](#(optional)-obb-detection)
 
 ## Getting started
 
