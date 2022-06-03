@@ -31,6 +31,9 @@ Nf = len(frames)
 #%% apply NMS on frames detections
 nms_frames = apply_NMS(frames)
 
+#%%
+draw_detections(nms_frames, path_imgs, img_format='.png', plot=True)
+
 #%% get trackelts
 tracklets = get_tracklets(nms_frames)
 

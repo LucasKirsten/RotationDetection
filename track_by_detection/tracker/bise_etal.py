@@ -48,16 +48,6 @@ def _make_hypotheses(tracklets, Nf):
             C.append(Ch)
             pho.append(ph)
         
-        # false positive hypothesis
-        if len(track)<FP_TH:
-            Ch = np.zeros(SIZE, dtype='bool')
-            Ch[[i==k or i==Nx+k for i in range(SIZE)]] = 1
-            ph = PFP(track, alpha, track.score())
-            
-            hyp.append(f'fp_{k}')
-            C.append(Ch)
-            pho.append(ph)
-        
         # translation and mitoses hypothesis
         if track.end>=Nf:
             yield hyp,C,pho
@@ -128,6 +118,16 @@ def _make_hypotheses(tracklets, Nf):
         hyp.append(f'term_{k}')
         C.append(Ch)
         pho.append(ph)
+        
+        # false positive hypothesis
+        if len(track)<FP_TH and term_hyp_prob<0.5:
+            Ch = np.zeros(SIZE, dtype='bool')
+            Ch[[i==k or i==Nx+k for i in range(SIZE)]] = 1
+            ph = PFP(track, alpha, track.score())
+            
+            hyp.append(f'fp_{k}')
+            C.append(Ch)
+            pho.append(ph)
         
         yield hyp,C,pho
         
@@ -263,7 +263,7 @@ def solve_tracklets(tracklets:list, Nf:int, squeeze_factor:float=0.8, max_iterat
     Nf : int
         Total number of frames.
     squeeze_factor : float, optional
-        Value to squeeze the INIT_TH, FP_TH after each iteration. The default is 0.8.
+        Value to squeeze the tracker threshold (INIT_TH, FP_TH etc) values after each iteration. The default is 0.8.
     max_iterations : int, optional
         Maximum number of iterations. The default is 100.
 
@@ -314,10 +314,10 @@ def solve_tracklets(tracklets:list, Nf:int, squeeze_factor:float=0.8, max_iterat
         # squeeze the threshold values for the next iteration
         INIT_TH *= squeeze_factor
         FP_TH *= squeeze_factor
-        # TRANSP_TH *= squeeze_factor
-        # CENTER_TH *= squeeze_factor
-        # MIT_TH *= squeeze_factor
-        # CENTER_MIT_TH *= squeeze_factor
+        TRANSP_TH *= squeeze_factor
+        CENTER_TH *= squeeze_factor
+        MIT_TH *= squeeze_factor
+        CENTER_MIT_TH *= squeeze_factor
             
     return list(tracklets)
 

@@ -132,8 +132,8 @@ def draw_tracklets(tracklets:list, frames:list, path_imgs:list, img_format:str='
             
             color = (int(colors[ti]), int(255-colors[ti]), 255)
             frame_imgs[start+di] = cv2.drawContours(frame_imgs[start+di], [box], -1, color, 2)
-            frame_imgs[start+di] = cv2.putText(frame_imgs[start+di], str(det_id), (int(cx),int(cy)), \
-                                       cv2.FONT_HERSHEY_SIMPLEX, 1, color, 1, cv2.LINE_AA)
+            #frame_imgs[start+di] = cv2.putText(frame_imgs[start+di], str(det_id), (int(cx),int(cy)), \
+            #                           cv2.FONT_HERSHEY_SIMPLEX, 1, color, 1, cv2.LINE_AA)
             #frame_imgs[start+di] = cv2.circle(frame_imgs[start+di], (int(cx),int(cy)), 2, color, 2)
     
     with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:

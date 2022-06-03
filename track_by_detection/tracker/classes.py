@@ -5,8 +5,11 @@ Auxiliar Classes for the tracking algorithm
 @author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
+import cv2
 import numpy as np
-from .func_utils import get_piou, get_from_piou
+from shapely.geometry import Polygon
+
+from .func_utils import get_hd, get_from_hd
 
 class Detection():
     def __init__(self,frame:str,score:float,cx:float,cy:float,\
@@ -44,11 +47,6 @@ class Detection():
             Index value of detection (detection with same idx belongs to same tracklet). The default is -1.
         convert : bool, optional
             If to convert values of one representation to another (e.g., standard (cx,cy,w,h,ang) to (cx,cy,a,b,c)). The default is True.
-
-        Returns
-        -------
-        None.
-
         '''
         
         self.frame = frame
@@ -64,12 +62,12 @@ class Detection():
             if (a is None) or (b is None) or (c is None):
                 self.w, self.h, self.ang = float(w), float(h), float(ang)
                 self.cx,self.cy,self.a,self.b,self.c = \
-                    get_piou(self.cx,self.cy,self.w,self.h,self.ang)
+                    get_hd(self.cx,self.cy,self.w,self.h,self.ang)
                     
             elif (w is None) or (h is None) or (ang is None):
                 self.a, self.b, self.c = float(a), float(b), float(c)
                 self.cx,self.cy,self.w,self.h,self.ang = \
-                    get_from_piou(self.cx,self.cy,self.a,self.b,self.c)
+                    get_from_hd(self.cx,self.cy,self.a,self.b,self.c)
             
             else:
                 self.w,self.h,self.ang = float(w), float(h), float(ang)
@@ -80,9 +78,29 @@ class Detection():
                 
         if self.w is not None and self.h is not None:
             self.area = self.w*self.h
+            box = cv2.boxPoints(((self.cx,self.cy),(self.w,self.h),self.ang))
+            box = np.int0(box)
+            self.box = Polygon(box)
                 
     def __str__(self):
         return str(self.__dict__)
+    
+    def iou(self, det) -> float:
+        '''
+        Get the intersection value percentage between two detections.
+
+        Parameters
+        ----------
+        det : Detection
+            Detection to compute the intersection with.
+
+        Returns
+        -------
+        float
+            Intersection value between the two detections.
+
+        '''
+        return self.box.intersection(det.box).area / self.box.union(det.box).area
         
 class Tracklet():
     def __init__(self, detections, start:int):
@@ -95,11 +113,6 @@ class Tracklet():
             List of detections, or single detection to compose Tracklet.
         start : int
             Start value relative to the frames.
-
-        Returns
-        -------
-        None.
-
         '''
         
         if type(detections)==list:
@@ -143,11 +156,6 @@ class Tracklet():
         ----------
         tracklet : Tracklet
             The tracklet to be joined with.
-
-        Returns
-        -------
-        None.
-
         '''
         
         assert tracklet.start>self.end, 'Trying to join non consecutive tracklets!'
@@ -180,29 +188,39 @@ class Frame(list):
             A list of values to the initially define the Frame list. The default is [].
         name : str, optional
             Frame image name. The default is None.
-
-        Returns
-        -------
-        None.
-
         '''
         super(Frame, self).__init__(values)
         self.name = name
     
     def get_values(self):
+        '''
+        Returns a numpy array containing all score,cx,cy,w,h,ang,a,b,c,d,mit values of detections in the Tracklet.
+        '''
         return np.array([[d.score,d.cx,d.cy,d.w,d.h,d.ang,d.a,d.b,d.c,d.mit]\
                          for d in self])
     
     def get_centers(self):
+        '''
+        Returns a numpy array containing all cx,cy values of detections in the Tracklet.
+        '''
         return np.array([[d.cx,d.cy] for d in self])
     
     def get_iou_values(self):
+        '''
+        Returns a numpy array containing all cx,cy,w,h,ang values of detections in the Tracklet.
+        '''
         return np.array([[d.cx,d.cy,d.w,d.h,d.ang] for d in self])
     
     def get_hd_values(self):
+        '''
+        Returns a numpy array containing all cx,cy,a,b,c values of detections in the Tracklet.
+        '''
         return np.array([[d.cx,d.cy,d.a,d.b,d.c] for d in self])
     
     def get_idxs(self):
+        '''
+        Returns a numpy array containing all idx values of detections in the Tracklet.
+        '''
         return np.array([d.idx for d in self])
     
     

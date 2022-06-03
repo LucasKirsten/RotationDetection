@@ -61,7 +61,7 @@ def _build_costs(frm0, frm1):
             cx0,cy0,w0,h0,ang0,a0,b0,c0 = frm0[j][1:-1] # remove score and mit
             cx1,cy1,w1,h1,ang1,a1,b1,c1 = frm1[k][1:-1]
             hd = helinger_dist(cx0,cy0,a0,b0,c0, \
-                               cx1,cy1,a1,b1,c1)
+                               cx1,cy1,a1,b1,c1, 0.5)
             iou = intersection_over_union(cx0,cy0,w0,h0,
                                           cx1,cy1,w1,h1)
             costs[j,k] = hd if iou>0 else 1
