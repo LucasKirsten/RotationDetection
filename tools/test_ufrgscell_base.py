@@ -100,12 +100,9 @@ class TestUFRGSCELL(object):
                 raise Exception('Could not find any saved model!')
 
             all_boxes_r = []
-            imgs = os.listdir(img_dir)
+            imgs = [p for p in os.listdir(img_dir) if p.endswith(image_ext)]
             pbar = tqdm(imgs)
             for a_img_name in pbar:
-
-                # if '1546' not in a_img_name:
-                #     continue
                 
                 a_img_name = a_img_name.split(image_ext)[0]
                 try:

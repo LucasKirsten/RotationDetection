@@ -238,7 +238,7 @@ class LabelMap(object):
         elif self.cfgs.DATASET_NAME == 'UFRGS_CELL':
             name_label_map = {'normal_cell':1, 'mitoses':2}
             
-        elif self.cfgs.DATASET_NAME == 'UFRGS_CELL_1class':
+        elif self.cfgs.DATASET_NAME in ('UFRGS_CELL_1class', 'Fluo-N2DH-SIM+'):
             name_label_map = {'normal_cell':1}
         
         else:

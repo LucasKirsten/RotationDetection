@@ -18,8 +18,8 @@ import argparse
 from tqdm import tqdm
 sys.path.append("../../")
 
-from track_by_detection.tracker.classes import Detection, Frame
-from track_by_detection.tracker.preprocessing import apply_NMS
+#from track_by_detection.tracker.classes import Detection, Frame
+#from track_by_detection.tracker.preprocessing import apply_NMS
 
 from libs.models.detectors.r3det import build_whole_network
 from tools.test_ufrgscell_base import TestUFRGSCELL
@@ -35,29 +35,29 @@ class TestUFRGSCELLGWD(TestUFRGSCELL):
 
         all_boxes_r = self.eval_with_plac(img_dir=self.args.img_dir, det_net=r3det,
                                           image_ext=self.args.image_ext)
-        print([len(box) for box in all_boxes_r])
-        
-        # apply NMS
-        frames = []
-        for fr in all_boxes_r:
-            detections = Frame()
-            
-            for box in fr:
-                mit,score,cx,cy,w,h,ang = box
-                
-                det = Detection(None,score=score,cx=cx,cy=cy,w=w,h=h,ang=ang,mit=mit-1)
-                detections.append(det)
-                
-            frames.append(detections)
-        
-        nms_boxes = apply_NMS(frames)
-        print([len(box) for box in nms_boxes])
-        all_boxes_r = []
-        for fr in nms_boxes:
-            arr = fr.get_values()[:,[-1,0,1,2,3,4,5]]
-            arr[:,0] += 1
-            all_boxes_r.append(np.array(arr))
-        
+        #print([len(box) for box in all_boxes_r])
+        #
+        ## apply NMS
+        #frames = []
+        #for fr in all_boxes_r:
+        #    detections = Frame()
+        #    
+        #    for box in fr:
+        #        mit,score,cx,cy,w,h,ang = box
+        #        
+        #        det = Detection(None,score=score,cx=cx,cy=cy,w=w,h=h,ang=ang,mit=mit-1)
+        #        detections.append(det)
+        #        
+        #    frames.append(detections)
+        #
+        #nms_boxes = apply_NMS(frames)
+        #print([len(box) for box in nms_boxes])
+        #all_boxes_r = []
+        #for fr in nms_boxes:
+        #    arr = fr.get_values()[:,[-1,0,1,2,3,4,5]]
+        #    arr[:,0] += 1
+        #    all_boxes_r.append(np.array(arr))
+        #
         imgs = os.listdir(self.args.img_dir)
         
         ## draw detections
@@ -79,8 +79,8 @@ class TestUFRGSCELLGWD(TestUFRGSCELL):
         
         real_test_imgname_list = [i.split(self.args.image_ext)[0] for i in imgs]
         
-        with open('/workdir/msc/RotationDetection/output/results_pickle/r3det.pkl', 'wb') as handle:
-            pickle.dump({'all_boxes':all_boxes_r, 'imgs':imgs}, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        #with open('/workdir/msc/RotationDetection/output/results_pickle/r3det.pkl', 'wb') as handle:
+        #    pickle.dump({'all_boxes':all_boxes_r, 'imgs':imgs}, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         print(10 * "**")
         print('rotation eval:')

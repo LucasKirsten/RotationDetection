@@ -10,6 +10,8 @@ from utils.tools import makedirs
 from libs.utils.coordinate_convert import backward_convert
 from tqdm import tqdm
 
+class_list = ['normal_cell']#, 'mitoses']
+
 def save_to_xml(save_path, im_height, im_width, objects_axis, label_name):
     im_depth = 0
     object_num = len(objects_axis)
@@ -122,9 +124,6 @@ def save_to_xml(save_path, im_height, im_width, objects_axis, label_name):
     f.write(doc.toprettyxml(indent=''))
     f.close()
 
-
-class_list = ['normal_cell', 'mitoses']
-
 def format_label(txt_list):
     format_data = []
     for i in txt_list:
@@ -144,9 +143,9 @@ def format_label(txt_list):
 
 def clip_image(file_idx, image, boxes_all, width, height, stride_w, stride_h):
     min_pixel = 2
-    print(file_idx)
+    #print(file_idx)
     boxes_all_5 = backward_convert(boxes_all[:, :8], False)
-    print(boxes_all[np.logical_or(boxes_all_5[:, 2] <= min_pixel, boxes_all_5[:, 3] <= min_pixel), :])
+    #print(boxes_all[np.logical_or(boxes_all_5[:, 2] <= min_pixel, boxes_all_5[:, 3] <= min_pixel), :])
     boxes_all = boxes_all[np.logical_and(boxes_all_5[:, 2] > min_pixel, boxes_all_5[:, 3] > min_pixel), :]
 
     if boxes_all.shape[0] > 0:
@@ -199,12 +198,13 @@ def clip_image(file_idx, image, boxes_all, width, height, stride_w, stride_h):
 
 print('class_list', len(class_list))
 # change here
-path_root = '/workdir/datasets/msc/UFRGS_CELL_2classes/train'
+path_root = sys.argv[-1]
 raw_data = path_root
-save_dir = os.path.join(os.path.split(path_root)[0], 'crop')
+save_dir = os.path.join(path_root, 'crop')
+
 
 os.makedirs(save_dir, exist_ok=True)
-raw_images_dir = os.path.join(raw_data, 'imgs')
+raw_images_dir = os.path.join(raw_data, 'images')
 raw_label_dir = os.path.join(raw_data, 'annotations', 'dota_format')
 
 images = [i for i in os.listdir(raw_images_dir) if 'jpg' in i]
@@ -218,7 +218,7 @@ max_length = 1
 
 img_h, img_w, stride_h, stride_w = 512, 512, 100, 100
 
-for idx, img in tqdm(enumerate(images)):
+for idx, img in tqdm(enumerate(images), total=len(images)):
     img_data = cv2.imread(os.path.join(raw_images_dir, img))
 
     txt_data = open(os.path.join(raw_label_dir, img.replace('jpg', 'txt')), 'r').readlines()

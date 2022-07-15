@@ -21,7 +21,7 @@ from libs.label_name_dict.label_dict import LabelMap
 
 import sys
 sys.path.append('../../')
-#from track_by_detection.tracker.func_utils import get_piou,helinger_dist
+from track_by_detection.tracker.func_utils import get_piou,helinger_dist
 #from track_by_detection.tracker.configs import NORMAL_SCORE_TH,MIT_SCORE_TH
 
 class EVAL(object):
@@ -94,10 +94,16 @@ class EVAL(object):
       # obj_struct['difficult'] = int(obj.find('difficult').text)
       obj_struct['difficult'] = 0
       bbox = obj.find('bndbox')
-      rbox = [eval(bbox.find('x1').text), eval(bbox.find('y1').text),
-              eval(bbox.find('x2').text), eval(bbox.find('y2').text),
-              eval(bbox.find('x3').text), eval(bbox.find('y3').text),
-              eval(bbox.find('x4').text), eval(bbox.find('y4').text)]
+      try:
+        rbox = [eval(bbox.find('x1').text), eval(bbox.find('y1').text),
+                eval(bbox.find('x2').text), eval(bbox.find('y2').text),
+                eval(bbox.find('x3').text), eval(bbox.find('y3').text),
+                eval(bbox.find('x4').text), eval(bbox.find('y4').text)]
+      except:
+        rbox = [eval(bbox.find('x0').text), eval(bbox.find('y0').text),
+                eval(bbox.find('x1').text), eval(bbox.find('y1').text),
+                eval(bbox.find('x2').text), eval(bbox.find('y2').text),
+                eval(bbox.find('x3').text), eval(bbox.find('y3').text)]
       rbox = np.array([rbox], np.float32)
       rbox = coordinate_convert.backward_convert(rbox, with_label=False)
       obj_struct['bbox'] = rbox
@@ -235,7 +241,7 @@ class EVAL(object):
     # 4. get recall, precison and AP
     fp = np.cumsum(fp)
     tp = np.cumsum(tp)
-    print(f'TP: {tp[-1]}, FP: {fp[-1]}, Total: {num_pos}')
+    #print(f'TP: {tp[-1]}, FP: {fp[-1]}, Total: {num_pos}')
     rec = tp / (float(num_pos) + 1e-6)
     # avoid divide by zero in case the first detection matches a difficult
     # ground truth
@@ -272,7 +278,10 @@ class EVAL(object):
         recall_list += [0.0]
       if verbose:
         print('Threshold: ', ovthreshold)
-        print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, recall[-1], precision[-1], AP))
+        if len(precision)>0 and len(recall)>0:
+          print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, recall[-1], precision[-1], AP))
+        else:
+          print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, 0, 0, AP))
         # print("{}_ap: {}".format(cls, AP))
         # print("{}_recall: {}".format(cls, recall[-1]))
         # print("{}_precision: {}".format(cls, precision[-1]))

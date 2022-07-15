@@ -27,7 +27,7 @@ class DetectionNetworkR2CNN(DetectionNetworkBase):
 
     def build_loss(self, rpn_box_pred, rpn_bbox_targets, rpn_cls_score, rpn_labels,
                    bbox_pred, bbox_targets, cls_score, labels):
-
+        
         with tf.variable_scope('build_loss'):
 
             with tf.variable_scope('rpn_loss'):
@@ -36,11 +36,12 @@ class DetectionNetworkR2CNN(DetectionNetworkBase):
                                                               bbox_targets=rpn_bbox_targets,
                                                               label=rpn_labels,
                                                               sigma=self.cfgs.RPN_SIGMA)
+                
                 rpn_select = tf.reshape(tf.where(tf.not_equal(rpn_labels, -1)), [-1])
                 rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score, rpn_select), [-1, 2])
                 rpn_labels = tf.reshape(tf.gather(rpn_labels, rpn_select), [-1])
-                rpn_cls_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score,
-                                                                                             labels=rpn_labels))
+                rpn_cls_loss = tf.reduce_mean(
+                    tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_labels))
 
                 self.losses_dict['rpn_cls_loss'] = rpn_cls_loss * self.cfgs.RPN_CLASSIFICATION_LOSS_WEIGHT
                 self.losses_dict['rpn_reg_loss'] = rpn_reg_loss * self.cfgs.RPN_LOCATION_LOSS_WEIGHT
@@ -51,12 +52,12 @@ class DetectionNetworkR2CNN(DetectionNetworkBase):
                                                              label=labels,
                                                              num_classes=self.cfgs.CLASS_NUM + 1,
                                                              sigma=self.cfgs.FASTRCNN_SIGMA)
+                #reg_loss = self.losses.probiou(preds=bbox_pred, target_boxes=bbox_targets)
 
-                # cls_score = tf.reshape(cls_score, [-1, cfgs.CLASS_NUM + 1])
-                # labels = tf.reshape(labels, [-1])
-                cls_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    logits=cls_score,
-                    labels=labels))  # beacause already sample before
+                cls_score = tf.reshape(cls_score, [-1, self.cfgs.CLASS_NUM + 1])
+                labels = tf.reshape(labels, [-1])
+                cls_loss = tf.reduce_mean(
+                    tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=labels))  # beacause already sample before
 
                 self.losses_dict['fast_cls_loss'] = cls_loss * self.cfgs.FAST_RCNN_CLASSIFICATION_LOSS_WEIGHT
                 self.losses_dict['fast_reg_loss'] = reg_loss * self.cfgs.FAST_RCNN_LOCATION_LOSS_WEIGHT

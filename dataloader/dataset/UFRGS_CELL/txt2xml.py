@@ -5,6 +5,7 @@ import xml.dom.minidom
 import numpy as np
 import csv
 import cv2
+import sys
 from tqdm import tqdm
 
 
@@ -101,7 +102,6 @@ def WriterXMLFiles(filename, path, box_list, labels, w, h, d):
         nodeobject.appendChild(nodebndbox)
         root.appendChild(nodeobject)
     fp = open(os.path.join(path,filename), 'w')
-    print(os.path.join(path,filename))
     doc.writexml(fp, indent='\n')
     fp.close()
 
@@ -134,13 +134,13 @@ def load_annoataion(p, h, w):
     return np.array(text_polys, dtype=np.int32), np.array(text_tags, dtype=np.str)
 
 if __name__ == "__main__":
-    txt_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/test/annotations/dota_format'
-    xml_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/test/xml_rotdet'
-    img_path = '/workdir/datasets/msc/UFRGS_CELL_2classes/test/imgs'
+    txt_path = sys.argv[-3]
+    xml_path = sys.argv[-2]
+    img_path = sys.argv[-1]
     
     os.makedirs(xml_path, exist_ok=True)
     txts = os.listdir(txt_path)
-    for count, t in tqdm(enumerate(txts)):
+    for count, t in tqdm(enumerate(txts), total=len(txts)):
         if '.txt' not in t:
             continue
         
