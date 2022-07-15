@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar  4 14:23:50 2022
+Preprocessing functions.
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
 import numpy as np
@@ -16,7 +16,7 @@ from .configs import *
 from .classes import *
 from .func_utils import helinger_dist
 
-#%% NMS algorithm using ProbIoU
+#%% NMS algorithm using Helinger Distance
 
 def _compute_NMS(frames):
     
@@ -39,9 +39,9 @@ def _compute_NMS(frames):
             # iterate over the other detections
             for j,d2 in enumerate(frame[i+1:]):
                 
-                # if they belong to different classes, continue
-                if d1.mit!=d2.mit:
-                    continue
+                # # if they belong to different classes, continue
+                # if d1.mit!=d2.mit:
+                #     continue
                 
                 # compute helinger distance between boxes
                 hd = helinger_dist(d1.cx,d1.cy,d1.a,d1.b,d1.c,\
@@ -64,35 +64,53 @@ def _compute_NMS(frames):
             # initialize values
             mean = np.array([[0.],[0.]])
             corr = np.array([[0.,0.],[0.,0.]])
-            sum_score, max_score = 0,0
+            total_sum, max_score = 0,0
+            mit = 0
             for d in boxes:
                 # compute mean and corr
                 m = np.array([[d.cx],[d.cy]])
-                mean += d.score * m
-                corr += d.score * (np.array([[d.a,d.c],[d.c,d.b]]) + np.matmul(m,m.T))
-                sum_score += d.score
+                mean += d.area * m
+                corr += d.area * (np.array([[d.a,d.c],[d.c,d.b]]) + np.matmul(m,m.T))
+                total_sum += d.area
                 
                 # compute score (max score over detections)
                 max_score = max(max_score, d.score)
+                
+                # if join with mitoses, set it to mitoses
+                mit = max(mit, d.mit)
             
             # divide arrays by the sum score
-            mean /= (sum_score+1e-6)
-            corr /= (sum_score+1e-6)
+            mean /= (total_sum+1e-6)
+            corr /= (total_sum+1e-6)
             
             # suvtract the correlation by the final mean value
             corr -= np.matmul(mean,mean.T)
             
             # get the calculated values to the final box
-            cx, cy = mean[0][0], mean[1][0]
+            cx, cy  = mean[0][0], mean[1][0]
             a, b, c = corr[0][0], corr[0][1], corr[1][1]
             
             # add detection to frame
             final_boxes.append(Detection(frame_name,max_score,cx,cy,\
-                                         a=a,b=b,c=c,mit=d.mit))
+                                         a=a,b=b,c=c,mit=mit))
         
         yield final_boxes
 
-def apply_NMS(frames):
+def apply_NMS(frames:list) -> list:
+    '''
+    Apply Gaussian NMS algorithm to a list of frames.
+
+    Parameters
+    ----------
+    frames : list
+        List of frames with detections.
+
+    Returns
+    -------
+    list
+        NMS frames detections.
+
+    '''
     
     pbar = tqdm(_compute_NMS(frames), total=len(frames))
     pbar.set_description('Applying NMS to frames')

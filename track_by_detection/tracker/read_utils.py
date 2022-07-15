@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Mar 28 23:37:27 2022
+Functions to read data.
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
 import os
@@ -32,7 +32,28 @@ def _read(path_dets, frame_imgs, threshold, mit):
     
     return detections
 
-def read_detections(path_normals, path_mitoses, frame_imgs):
+def read_detections(path_normals:str, path_mitoses:str, frame_imgs:list) -> list:
+    '''
+    Read txt files with normal and mitoses detections.
+
+    Parameters
+    ----------
+    path_normals : str
+        Path to the file containing the normal detections.
+    path_mitoses : str
+        Path to the file containing the mitoses detections.
+    frame_imgs : list
+        List of frames image names.
+
+    Returns
+    -------
+    list
+        List of detections.
+
+    '''
+    
+    # sort frame images by name
+    frame_imgs = sorted(frame_imgs)
     
     # open normal detections
     print('Reading normal detections...')
@@ -47,7 +68,7 @@ def read_detections(path_normals, path_mitoses, frame_imgs):
     
 #%% functions to read labels
 
-@njit(parallel=True)
+@njit
 def _is_continuos(frames_id):
     # verify if the frames detections are continuos
     for i in range(len(frames_id)-1):
@@ -55,7 +76,7 @@ def _is_continuos(frames_id):
             return 0
     return 1
 
-def read_annotations_csv(path_gt):
+def _read_annotations_csv(path_gt):
     df = pd.read_csv(path_gt)
     
     assert ('cx' in df) and ('cy' in df) and ('frame' in df), \
@@ -86,17 +107,20 @@ def read_annotations_csv(path_gt):
         
     return tracklets
 
-def read_annotations_tif(path_gt:str, ext:str='.tif'):
+def _read_annotations_tif(path_gt:str, ext:str='.tif'):
+    # read annotations from tif files
     
     path_gt = glob(os.path.join(path_gt, '*'+ext))
     path_gt = sorted(path_gt)
     
     tracklets = {}
     
+    # iterate over the image paths
     pbar = tqdm(enumerate(path_gt), total=len(path_gt))
-    def _get_tracklets(i,path):
-        nonlocal tracklets
+    pbar.set_description('Reading annotations')
+    for i,path in pbar:
         
+        # read the ground truth image
         frame = os.path.split(path)[-1].split('.')[-0]
         seg = cv2.imread(path, -1)
         
@@ -104,25 +128,53 @@ def read_annotations_tif(path_gt:str, ext:str='.tif'):
             if val==0:
                 continue
             
+            # get the rectangle region of the gt cell
             y,x = np.where(seg==val)
             points = np.array(list(zip(x,y)))
             (cx,cy), (w,h), ang = cv2.minAreaRect(points)
             
+            # define the detection
             detection = Detection(frame,1,cx,cy,w,h,ang)           
             
+            # add to the stored tracklets
             if val not in tracklets:
                 tracklets[val] = Tracklet(detection, i)
             else:
                 tracklets[val].append(detection)
                 
-    pbar.set_description('Reading annotations')
-    with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
-        _ = parallel(delayed(_get_tracklets)(i,path) \
-                               for i,path in pbar)
-                
     return list(tracklets.values())
 
+def read_annotations(path_gt:str, ext:str='.tif') -> list:
+    '''
+    Read the annotation data from a folder containing tif images, or a csv file.
 
+    Parameters
+    ----------
+    path_gt : str
+        Path to the annotations. Should be either a folder containing tif images or a csv file.
+    ext : str, optional
+        Extension of the ground truth images, if path_gt is a folder. The default is '.tif'.
+
+    Raises
+    ------
+    Exception
+        If path_gt is not a csv file or a folder.
+
+    Returns
+    -------
+    list
+        List of ground truth tracklets.
+
+    '''
+    
+    # verify how to read the ground truth data
+    if path_gt.endswith('.csv'):
+        return _read_annotations_csv(path_gt)
+    elif os.path.isdir(path_gt):
+        return _read_annotations_tif(path_gt, ext)
+    else:
+        raise Exception('path_gt should reference to a csv file or a folder \
+                        containing tif images!')
 
 
 

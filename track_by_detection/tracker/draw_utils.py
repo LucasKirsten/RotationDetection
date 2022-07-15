@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri May 20 20:52:18 2022
+Auxiliar functions from drawing results.
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
 import os
@@ -13,16 +13,43 @@ import multiprocessing
 from joblib import Parallel, delayed
 NUM_CORES = multiprocessing.cpu_count()
 
-def draw_detections(frames, path_imgs, img_format='.png', plot=True):
+from .configs import *
+
+def draw_detections(frames:list, path_imgs:list, img_format:str='.png', \
+                    plot:bool=False, save_video:bool=False) -> list:
+    '''
+    Draw detections on the Frames.
+
+    Parameters
+    ----------
+    frames : list
+        List of frames.
+    path_imgs : list
+        Path to all image frames.
+    img_format : str, optional
+        The extension of images in the image path. The default is '.png'.
+    plot : bool, optional
+        If to plot the results. The default is False.
+    save_video : bool, optional
+        If to save the results in a video format. The default is False.
+
+    Returns
+    -------
+    list
+        List of draw frames results.
+
+    '''
     
     pbar = tqdm(frames)
     pbar.set_description('Reading frames')
     def _draw_frame(frm):
+        # read images and draw the detectors detections
         img_name = frm.name
         img_name = os.path.join(path_imgs, img_name+img_format)
         img = cv2.imread(img_name)[...,::-1]
         draw = np.copy(img)
         
+        # iterate over detections to draw in frame
         for det in frm:
             cx,cy,w,h,a,mit = det.cx,det.cy,det.w,det.h,det.a,det.mit
             box = cv2.boxPoints(((cx,cy),(w,h),a))
@@ -37,14 +64,49 @@ def draw_detections(frames, path_imgs, img_format='.png', plot=True):
         frame_imgs = parallel(delayed(_draw_frame)(frm) for frm in pbar)
         
     if plot:
+        # if to plot the final frames results
         for img in frame_imgs:
             cv2.imshow('', img)
             cv2.waitKey(0)
         cv2.destroyAllWindows()
         
+    if save_video:
+        # if to save a video with the final frame results
+        h,w,c = frame_imgs[0].shape
+        out = cv2.VideoWriter(f'./{DATASET}_{DETECTOR}_{len(frames)}.avi',\
+                              cv2.VideoWriter_fourcc(*'XVID'), 10.0, (w,h))
+        for img in frame_imgs:
+            out.write(img)
+        out.release()
+        
     return frame_imgs
 
-def draw_tracklets(tracklets, frames, path_imgs, img_format='.png', plot=True):
+def draw_tracklets(tracklets:list, frames:list, path_imgs:list, img_format:str='.png', \
+                   plot:bool=False, save_video:bool=False):
+    '''
+    Draw tracklets on the Frames.
+
+    Parameters
+    ----------
+    tracklets : list
+        List of tracklets.
+    frames : list
+        List of frames.
+    path_imgs : list
+        Path to all image frames.
+    img_format : str, optional
+        The extension of images in the image path. The default is '.png'.
+    plot : bool, optional
+        If to plot the results. The default is False.
+    save_video : bool, optional
+        If to save the results in a video format. The default is False.
+
+    Returns
+    -------
+    list
+        List of draw frames results.
+
+    '''
     
     frame_imgs = draw_detections(frames, path_imgs, img_format, plot=False)
     
@@ -70,8 +132,8 @@ def draw_tracklets(tracklets, frames, path_imgs, img_format='.png', plot=True):
             
             color = (int(colors[ti]), int(255-colors[ti]), 255)
             frame_imgs[start+di] = cv2.drawContours(frame_imgs[start+di], [box], -1, color, 2)
-            frame_imgs[start+di] = cv2.putText(frame_imgs[start+di], str(det_id), (int(cx),int(cy)), \
-                                       cv2.FONT_HERSHEY_SIMPLEX, 1, color, 1, cv2.LINE_AA)
+            #frame_imgs[start+di] = cv2.putText(frame_imgs[start+di], str(det_id), (int(cx),int(cy)), \
+            #                           cv2.FONT_HERSHEY_SIMPLEX, 1, color, 1, cv2.LINE_AA)
             #frame_imgs[start+di] = cv2.circle(frame_imgs[start+di], (int(cx),int(cy)), 2, color, 2)
     
     with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
@@ -82,5 +144,13 @@ def draw_tracklets(tracklets, frames, path_imgs, img_format='.png', plot=True):
             cv2.imshow('', img)
             cv2.waitKey(0)
         cv2.destroyAllWindows()
+        
+    if save_video:
+        h,w,c = frame_imgs[0].shape
+        out = cv2.VideoWriter(f'./{DATASET}_{DETECTOR}_{len(frames)}.avi',\
+                              cv2.VideoWriter_fourcc(*'XVID'), 10.0, (w,h))
+        for img in frame_imgs:
+            out.write(img)
+        out.release()
         
     return frame_imgs

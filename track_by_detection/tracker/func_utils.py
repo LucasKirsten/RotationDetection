@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Feb  9 18:43:43 2022
+Functions used by other modules.
 
-@author: kirstenl
+@author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
 import numpy as np
@@ -63,8 +63,8 @@ def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2, shape_weight=1.):
     return Hd
 
 @njit
-def get_piou(cx,cy,w,h,angle):
-    # get ProbIoU values
+def get_hd(cx,cy,w,h,angle):
+    # get Helinger distance values
     angle *= np.pi/180.
     
     al = w**2./12.
@@ -76,7 +76,8 @@ def get_piou(cx,cy,w,h,angle):
     return cx,cy,a,b,c
 
 @njit
-def get_from_piou(cx,cy,a,b,c):
+def get_from_hd(cx,cy,a,b,c):
+    # get standard values from Helinger distance ones
     
     corr = np.array([[a,c],[c,b]])
     val,vec = LA.eig(corr)
@@ -88,6 +89,7 @@ def get_from_piou(cx,cy,a,b,c):
 
 @njit
 def center_distances(x1,y1, x2,y2):
+    # computer distance between center points
     return np.sqrt(np.square(x1-x2)+np.square(y1-y2))
 
 #%% functions to calculate probabilities
