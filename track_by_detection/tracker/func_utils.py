@@ -94,11 +94,14 @@ def center_distances(x1,y1, x2,y2):
 
 #%% functions to calculate probabilities
 
-def PFP(Xk, alpha, score):
-    return (1-alpha)**len(Xk)
+def PFP(Xk, alpha, start=None, end=None):
+    if start is None and end is None:
+        return np.exp(-((1-alpha)/(1-Xk.score()))**len(Xk))
+    else:
+        return np.exp(-((1-alpha)/(1-Xk.slice_score(start,end)))**len(Xk))
 
-def PTP(Xk, alpha, score):
-    return 1 - PFP(Xk, alpha, score)
+def PTP(Xk, alpha, start=None, end=None):
+    return 1 - PFP(Xk, alpha, start=None, end=None)
 
 def Pini(Xk):
     dt0 = Xk.start
@@ -114,8 +117,10 @@ def Plink(Xj, Xi, cnt_dist):
     
     return np.exp(-np.abs(featij)/LINK_FACTOR)
 
-def Pmit(cnt_dist, d_mit):
-    featij = cnt_dist*(d_mit+1)
+def Pmit(cnt_dist, d_mit, areaj, areai):
+    featij = cnt_dist
+    featij *= d_mit + 1
+    featij *= min(areaj/areai, areai/areaj)
     return np.exp(-np.abs(featij)/MIT_FACTOR)
 
 

@@ -20,7 +20,7 @@ from .classes import *
 
 #%% get the frames from detections
 
-def get_frames(detections:list, frame_names:list) -> list:
+def get_frames_from_detections(detections:list, frame_names:list) -> list:
     '''
     Return a list of frames from a list of detections.
 
@@ -40,13 +40,34 @@ def get_frames(detections:list, frame_names:list) -> list:
     
     # merge detections into frames
     frames = {name:Frame(name=name) for name in frame_names}
-    pbar = tqdm(detections)
-    pbar.set_description('Loading frames: ')
+    
+    pbar = detections
+    if DEBUG:
+        pbar = tqdm(pbar)
+        pbar.set_description('Loading frames: ')
     for det in pbar:
         frames[det.frame].append(det)
         
     # sort the frames by name
     frames = [frames[name] for name in sorted(list(frames.keys()))]
+        
+    return frames
+
+#%% get frames from tracklets
+
+def get_frames_from_tracklets(tracklets:list, frame_names:list) -> list:
+    
+    # merge detections into frames
+    frames = [Frame(name=name) for name in sorted(frame_names)]
+    
+    pbar = tracklets
+    if DEBUG:
+        pbar = tqdm(pbar)
+        pbar.set_description('Loading frames: ')
+    for track in pbar:
+        start = track.start
+        for i,det in enumerate(track):
+            frames[start+i].append(det)
         
     return frames
 
@@ -58,13 +79,13 @@ def _build_costs(frm0, frm1):
     costs = np.zeros((len(frm0), len(frm1)))
     for j in range(costs.shape[0]):
         for k in range(costs.shape[1]):
-            cx0,cy0,w0,h0,ang0,a0,b0,c0 = frm0[j][1:-1] # remove score and mit
-            cx1,cy1,w1,h1,ang1,a1,b1,c1 = frm1[k][1:-1]
-            hd = helinger_dist(cx0,cy0,a0,b0,c0, \
-                               cx1,cy1,a1,b1,c1, 0.5)
-            iou = intersection_over_union(cx0,cy0,w0,h0,
-                                          cx1,cy1,w1,h1)
-            costs[j,k] = hd if iou>0 else 1
+            s0,cx0,cy0,w0,h0,ang0,a0,b0,c0 = frm0[j][:-1] # remove score and mit
+            s1,cx1,cy1,w1,h1,ang1,a1,b1,c1 = frm1[k][:-1]
+            # compute helinger distance and IoU
+            hd  = helinger_dist(cx0,cy0,a0,b0,c0, cx1,cy1,a1,b1,c1, 0.5)
+            iou = intersection_over_union(cx0,cy0,w0,h0, cx1,cy1,w1,h1)
+            costs[j,k] = hd \
+                if (iou>0 and s0>TRACK_SCORE_TH and s1>TRACK_SCORE_TH) else 1
     return costs
 
 def get_tracklets(frames:list) -> list:
@@ -95,8 +116,11 @@ def get_tracklets(frames:list) -> list:
     tracklets = [Tracklet(det,0) for det in frames[0]]
     
     ids = set(range(len(tracklets))) # set of indexes
-    pbar = tqdm(range(len(frames)-1))
-    pbar.set_description('Getting tracklets: ')
+    
+    pbar = range(len(frames)-1)
+    if DEBUG:
+        pbar = tqdm(pbar)
+        pbar.set_description('Getting tracklets: ')
     for i in pbar:
         
         # take consecutive frames
@@ -124,13 +148,12 @@ def get_tracklets(frames:list) -> list:
                 ids.add(float(max(ids) + 1))
                 tracklets.append(Tracklet([det], i+1))
     
-    # filter tracklets based on the number of detections and score
-    if TRACK_SCORE_TH>0 or TRACK_SIZE_TH>0:
-        tracklets = [tr for tr in tracklets \
-                     if (len(tr)>TRACK_SIZE_TH and tr.score()>TRACK_SCORE_TH)]
-    
     # sort tracklets based on the first frame they appear
     tracklets = sorted(tracklets, key=lambda x:x.start)
+    
+    # set idx values
+    for i,track in enumerate(tracklets):
+        track.set_idx(i+1)
                 
     return tracklets
 

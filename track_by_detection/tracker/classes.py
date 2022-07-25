@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 from shapely.geometry import Polygon
 
-from .func_utils import get_hd, get_from_hd
+from .func_utils import get_hd, get_from_hd, center_distances as cdist
 
 class Detection():
     def __init__(self,frame:str,score:float,cx:float,cy:float,\
@@ -77,10 +77,10 @@ class Detection():
             self.w,self.h,self.ang,self.a,self.b,self.c = 0,0,0,0,0,0
                 
         if self.w is not None and self.h is not None:
-            self.area = self.w*self.h
             box = cv2.boxPoints(((self.cx,self.cy),(self.w,self.h),self.ang))
             box = np.int0(box)
             self.box = Polygon(box)
+            self.area = self.box.area
                 
     def __str__(self):
         return str(self.__dict__)
@@ -121,9 +121,19 @@ class Tracklet():
         else:
             self.detections = [detections]
             self.sum_score = detections.score
+        
+        # compute tracklet speed and mean area
+        self.distance, self.sum_area = 0., 0.
+        if len(self.detections)>1:
+            self.distance = sum([cdist(self[i].cx,self[i-1].cx,self[i].cy,self[i-1].cy) \
+                                 for i in range(1,len(self.detections))])
+            self.sum_area = sum([det.area for det in self])
+        
         self.start = start
         self.size = len(self.detections)
-        self.end = start + self.size
+        self.end = start + self.size - 1
+        self.parent = None
+        self.idx = None
         
     def __len__(self):
         return self.size
@@ -136,16 +146,29 @@ class Tracklet():
         self.end += k
     
     def append(self, x):
+        x.idx = self.detections[-1].idx
         self.detections.append(x)
         self.sum_score += x.score
+        self.distance += cdist(x.cx,self[-1].cx,x.cy,self[-2].cy)
+        self.sum_area += x.area
         self.__add(1)
+        
+    def set_idx(self, i):
+        self.idx = i
+        for det in self:
+            det.idx = i
         
     def score(self):
         return self.sum_score/self.size
-        
-    # def extend(self, x):
-    #     self.detections.extend(x)
-    #     self.__add(len(x) if type(x)==list else 1)
+    
+    def slice_score(self, start, end):
+        return np.mean([d.score for d in self[start:end]])
+    
+    def speed(self):
+        return self.distance/(self.size-1)
+    
+    def area(self):
+        return self.sum_area/self.size
     
     # join two tracklets (e.g., for translation hyphotesis)
     def join(self, tracklet):
@@ -158,7 +181,7 @@ class Tracklet():
             The tracklet to be joined with.
         '''
         
-        assert tracklet.start>self.end, 'Trying to join non consecutive tracklets!'
+        assert tracklet.start>self.end, f'Trying to join non consecutive tracklets with ids {tracklet.idx},{self.idx}!'
         
         # if there are gaps between tracklets, linearly fill them
         if tracklet.start - self.end > 1:
@@ -170,12 +193,63 @@ class Tracklet():
                 parms = {'cx':None,'cy':None,'w':None,'h':None,'ang':None}
                 for p in parms.keys():
                     parms[p] = d0.__dict__[p] + (i+1)*(df.__dict__[p]-d0.__dict__[p])/dx
-                parms.update({'frame':None,'score':0,'mit':0})
+                
+                score = (self[-1-i].score + df.score)/2.
+                parms.update({'frame':None,'score':score,'mit':0})
                 
                 self.append(Detection(**parms))
             
+        # add all detections to the tracklet
         for det in tracklet:
+            det.idx = self.detections[-1].idx
             self.append(det)
+        
+        # adjust parenting
+        if (self.parent is None) and (tracklet.parent is not None):
+            self.parent = tracklet.parent
+            
+    def split_mitoses(self, d_mit:int=0) -> list:
+        '''
+        Split the tracklet where a mitoses event occurs.
+        
+        Parameters
+        ----------
+        d_mit : int, optional
+            Distance from the mitoses event to the tracklet start. The default value is 0.
+
+        Returns
+        -------
+        list
+            The two resulting tracklets from splitting.
+        '''
+        
+        t1 = Tracklet(self[:d_mit], self.start)
+        t2 = Tracklet(self[d_mit:], self.start + d_mit)
+        
+        t2.parent = t1
+        
+        return t1, t2
+    
+    def split(self, d_split:int):
+        '''
+        TBD
+
+        Parameters
+        ----------
+        d_split : int
+            DESCRIPTION.
+
+        Returns
+        -------
+        track : TYPE
+            DESCRIPTION.
+
+        '''
+        
+        track = Tracklet(self[:d_split], self.start)
+        track.set_idx(self.idx)
+        return track
+        
         
 class Frame(list):
     def __init__(self, values:list=[], name:str=None):

@@ -5,10 +5,18 @@ Function to evaluate the final tracklet results.
 @author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
+import os
+import cv2
 import numpy as np
 import motmetrics as mm
+import tifffile as tiff
 from numba import njit
+from tqdm import tqdm
+from joblib import Parallel, delayed
+import multiprocessing
+NUM_CORES = multiprocessing.cpu_count()
 
+from .configs import *
 from .classes import Frame
 from .func_utils import helinger_dist, intersection_over_union
 
@@ -20,14 +28,13 @@ def _build_hd_matrix(frm0, frm1):
         for k in range(costs.shape[1]):
             cx0,cy0,w0,h0,ang0,a0,b0,c0 = frm0[j][1:-1] # remove score and mit
             cx1,cy1,w1,h1,ang1,a1,b1,c1 = frm1[k][1:-1]
-            hd = helinger_dist(cx0,cy0,a0,b0,c0, \
-                               cx1,cy1,a1,b1,c1)
-            iou = intersection_over_union(cx0,cy0,w0,h0,
-                                          cx1,cy1,w1,h1)
+            # compute helinger distance and IoU
+            hd = helinger_dist(cx0,cy0,a0,b0,c0, cx1,cy1,a1,b1,c1)
+            iou = intersection_over_union(cx0,cy0,w0,h0, cx1,cy1,w1,h1)
             costs[k,j] = hd if iou>0 else np.nan
     return costs
 
-def evaluate(true_tracklets:list, pred_tracklets:list, num_frames:int,\
+def MOTA_evaluate(true_tracklets:list, pred_tracklets:list, num_frames:int,\
              dist_method:str='hd') -> str:
     '''
     Evaluate the tracklets results using the MOTA metric.
@@ -74,7 +81,11 @@ def evaluate(true_tracklets:list, pred_tracklets:list, num_frames:int,\
     acc = mm.MOTAccumulator(auto_id=True)
     
     # add all detections to accumulator
-    for pred,true in zip(pred_frames, true_frames):
+    pbar = zip(pred_frames, true_frames)
+    if DEBUG:
+        pbar = tqdm(pbar, total=len(pred_frames))
+        pbar.set_description('Computing prediction and annotation assignments')
+    for pred,true in pbar:
         
         idx_pred = pred.get_idxs()
         idx_true = true.get_idxs()
@@ -115,3 +126,49 @@ def evaluate(true_tracklets:list, pred_tracklets:list, num_frames:int,\
     )
     
     return strsummary
+
+#%% function to draw and write tracklets evaluation for ISB challenge
+
+def ISBI_evaluate(path_save:str, tracklets:list, Nf:int) -> None:
+    
+    os.makedirs(path_save, exist_ok=True)
+    frame_dets = [[] for _ in range(Nf)]
+    
+    file = open(os.path.join(path_save, 'res_track.txt'), 'w')
+    
+    pbar = tracklets
+    if DEBUG:
+        pbar = tqdm(pbar, total=len(tracklets))
+        pbar.set_description('Writing tracklets')
+    for track in pbar:
+        
+        parent = 0 if track.parent is None else track.parent.idx
+        file.write(f'{track.idx} {track.start} {track.end} {parent}\n')
+        
+        start = track.start
+        for di,det in enumerate(track):
+            if start+di>Nf:
+                continue
+            frame_dets[start+di].append(det)
+        
+    file.close()
+    
+    pbar = enumerate(frame_dets)
+    if DEBUG:
+        pbar = tqdm(pbar, total=Nf)
+        pbar.set_description('Drawing frames')
+    def _draw_frames(i,frame):
+        draw = np.zeros(FRAME_SHAPE, dtype='uint16')
+        dets = sorted(frame, key=lambda x:-x.area)
+        for det in dets:
+            ellipse = ((det.cx,det.cy),(det.w,det.h),det.a)
+            cv2.ellipse(draw, ellipse, det.idx, -1)
+        tiff.imsave(os.path.join(path_save, f'mask{i:03d}.tif'), draw)
+        
+    with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
+        _ = parallel(delayed(_draw_frames)(i,frame) for i,frame in pbar)
+        
+    os.system(f'cd evaluation/Win && DETMeasure.exe ../../frames/{DATASET} {LINEAGE} 3')
+    os.system(f'cd evaluation/Win && SEGMeasure.exe ../../frames/{DATASET} {LINEAGE} 3')
+    os.system(f'cd evaluation/Win && TRAMeasure.exe ../../frames/{DATASET} {LINEAGE} 3')
+            

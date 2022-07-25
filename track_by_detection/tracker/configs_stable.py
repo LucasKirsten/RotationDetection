@@ -22,12 +22,12 @@ path_gt   = f'./frames/{DATASET}/{LINEAGE}_GT/TRA'
 # for normal detections
 NORMAL_SCORE_TH = 0.5
 # for mitoses detection
-MIT_SCORE_TH = 0.1
+MIT_SCORE_TH = 0.5
 
 # values to filter tracklets based on the number of detections and score
 # minimun score to validate a tracklet as valid (score for tracklets are the
 # mean score value for all detections in it)
-TRACK_SCORE_TH = 0.5
+TRACK_SCORE_TH = 0.9
 # minimun size of the tracklet to have at least SCORE_TH to be valid
 TRACK_SIZE_TH  = 5
 
@@ -38,13 +38,17 @@ NMS_TH = 0.5
 
 # thresholds for the tracker
 
+# frames to be consider the initial state
+# higher values means that more cells can be consider as the starters
+INIT_TH = 10
+
 # maximal number of detections to a frame be a possible false positive
 # higher values means that longer tracklets can be consider false positives
 FP_TH = 5
 
 # distance between frames to consider transposition
 # higher values means that higher gaps allows to join detections
-TRANSP_TH = 5
+TRANSP_TH = 10
 
 # distance between frames to consider mitoses
 # higher values means that allows higher gaps to consider a mitoses event
@@ -52,14 +56,14 @@ MIT_TH = 3
 
 # distance between cell centers in pixels to consider joining
 # higher values means that cells far appart can be joined in tracklets
-CENTER_TH = int(0.1*max(FRAME_SHAPE))
+CENTER_TH = int(0.2*max(FRAME_SHAPE))
 
 # distance between cell centers in pixels for mitoses
-CENTER_MIT_TH = int(0.05*max(FRAME_SHAPE))
+CENTER_MIT_TH = int(0.1*max(FRAME_SHAPE))
 
 # values to adjust the probabilities distributions
 # higher values means larger probabilites
-INIT_FACTOR = 10
+INIT_FACTOR = INIT_TH
 LINK_FACTOR = 2000
 MIT_FACTOR  = 500
 

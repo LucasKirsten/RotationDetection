@@ -112,8 +112,10 @@ def apply_NMS(frames:list) -> list:
 
     '''
     
-    pbar = tqdm(_compute_NMS(frames), total=len(frames))
-    pbar.set_description('Applying NMS to frames')
+    pbar = _compute_NMS(frames)
+    if DEBUG:
+        pbar = tqdm(pbar, total=len(frames))
+        pbar.set_description('Applying NMS to frames')
     with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
         nms_frames = parallel(delayed(lambda x:x)(x) for x in pbar)
         
