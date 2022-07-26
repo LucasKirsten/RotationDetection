@@ -26,7 +26,7 @@ frame_imgs = [file.split('.')[0] for file in os.listdir(path_imgs)]
 # get detections
 detections = read_detections(f'{path_dets}/det_normal_cell.txt', \
                              f'{path_dets}/det_mitoses.txt', frame_imgs,\
-                             from_crops=True)
+                             from_crops=False)
 
 #%% split detections into frames
 frames = get_frames_from_detections(detections, frame_imgs)
@@ -49,11 +49,10 @@ final_tracklets = solve_tracklets(tracklets, Nf, max_iterations=100)
 
 #%% write results in csv file
 
-# write_results(f'./frames/{DATASET}/{LINEAGE}_RES/results.csv', \
-#               final_tracklets, nms_frames)
+write_results(f'./frames/{DATASET}/{LINEAGE}_RES/results.csv', \
+              final_tracklets, nms_frames)
 
 #%% evaluate using ISBI
-    
 # ISBI_evaluate(f'./frames/{DATASET}/{LINEAGE}_RES', final_tracklets, Nf)
 
 #%% evaluate predictions
