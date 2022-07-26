@@ -57,12 +57,15 @@ def _make_hypotheses(tracklets, Nf):
             k2 += 1
             
             # if tracklets begins togheter or is not possible to join
-            if track.start==track2.start or track.end+len(track2)>Nf:
+            if track.start==track2.start or track.end==track2.start or \
+                track.end+len(track2)>Nf:
                 continue
             
             # calculate center distances
-            cnt_dist = center_distances(track[-1].cx,track[-1].cy, \
-                                        track2[0].cx,track2[0].cy)
+            # cnt_dist = center_distances(track[-1].cx,track[-1].cy, \
+            #                             track2[0].cx,track2[0].cy)
+            cnt_dist = helinger_dist(*track[-1].get_values(),\
+                                     *track2[0].get_values(), 0.5)
             
             # verify hyphotesis
             if track2.start-track.end<TRANSP_TH and \
@@ -71,7 +74,6 @@ def _make_hypotheses(tracklets, Nf):
                 # translation hypothesis
                 Ch = np.zeros(SIZE, dtype='bool')
                 Ch[[i==k or i==Nx+k2 for i in range(SIZE)]] = 1
-                #Ch[2*Nx+track2.start] = 1
                 ph = Plink(track, track2, cnt_dist)
                 
                 hyp.append(f'transl_{track.idx},{track2.idx}')
@@ -132,12 +134,15 @@ def _make_hypotheses_mitoses(tracklets, Nf):
                 k2 += 1
                 
                 # if tracklets begins togheter or is above gap threshold
-                if track.start+d_mit>=track2.start or track2.start-track.start-d_mit>MIT_TH:
+                if track.start+d_mit>=track2.start or \
+                    track2.start-track.start-d_mit>MIT_TH:
                     continue
                 
                 # calculate center distances
-                cnt_dist = center_distances(track[d_mit].cx,track[d_mit].cy, \
-                                            track2[0].cx,track2[0].cy)
+                # cnt_dist = center_distances(track[d_mit].cx,track[d_mit].cy, \
+                #                             track2[0].cx,track2[0].cy)
+                cnt_dist = helinger_dist(*track[d_mit].get_values(),
+                                         *track2[0].get_values(), 0.5)
                     
                 if cnt_dist>CENTER_MIT_TH:
                     continue
@@ -145,9 +150,7 @@ def _make_hypotheses_mitoses(tracklets, Nf):
                 # mitoses hypothesis
                 Ch = np.zeros(SIZE, dtype='bool')
                 Ch[[i==k or i==Nx+k2 for i in range(SIZE)]] = 1
-                #Ch[2*Nx+track2.start] = 1
-                ph_mit = Pmit(cnt_dist, track2.start-track.start-d_mit,\
-                              track[d_mit].area, track2[0].area)
+                ph_mit = Pmit(cnt_dist, d_mit)
                 #ph_mit *= PTP(track2, ALPHA_MITOSE)
                 
                 hyp.append(f'mit_{track.idx}-{d_mit},{track2.idx}')
@@ -157,7 +160,6 @@ def _make_hypotheses_mitoses(tracklets, Nf):
                 # partial false positive
                 Ch = np.zeros(SIZE, dtype='bool')
                 Ch[[i==k or i==Nx+k2 for i in range(SIZE)]] = 1
-                #Ch[2*Nx+track2.start] = 1
                 ph_fp = PFP(track, ALPHA_MITOSE, start=d_mit)
                 ph_fp *= PTP(track2, ALPHA_MITOSE)
                 
@@ -192,30 +194,33 @@ def _make_hypotheses_mitoses(tracklets, Nf):
                     continue
                 if track.start>=track3.start or track3.start-track.start>MIT_TH:
                     continue
-                if abs(track3.start-track2.start)>MIT_TH:
-                    continue
                 
                 # calculate center distances
-                cnt_dist2 = center_distances(track[-1].cx,track[-1].cy, \
-                                             track2[0].cx,track2[0].cy)
+                # cnt_dist2 = center_distances(track[-1].cx,track[-1].cy, \
+                #                              track2[0].cx,track2[0].cy)
+                cnt_dist2 = helinger_dist(*track[-1].get_values(),
+                                          *track2[0].get_values(), 0.5)
                 if cnt_dist2>CENTER_MIT_TH:
                     continue
-                cnt_dist3 = center_distances(track[-1].cx,track[-1].cy, \
-                                             track3[0].cx,track3[0].cy)
+                # cnt_dist3 = center_distances(track[-1].cx,track[-1].cy, \
+                #                              track3[0].cx,track3[0].cy)
+                cnt_dist3 = helinger_dist(*track[-1].get_values(),
+                                          *track3[0].get_values(), 0.5)
                 if cnt_dist3>CENTER_MIT_TH:
                     continue
-                cnt_dist23 = center_distances(track2[0].cx,track2[0].cy, \
-                                              track3[0].cx,track3[0].cy)
+                # cnt_dist23 = center_distances(track2[0].cx,track2[0].cy, \
+                #                               track3[0].cx,track3[0].cy)
+                cnt_dist23 = helinger_dist(*track2[0].get_values(),
+                                           *track3[0].get_values(), 0.5)
                 if cnt_dist23>CENTER_MIT_TH:
                     continue
                 
                 # mitoses hypothesis
                 Ch = np.zeros(SIZE, dtype='bool')
                 Ch[[i==k or i==Nx+k2 or i==Nx+k3 for i in range(SIZE)]] = 1
-                #Ch[2*Nx+track2.start] = 1
                 d_mit = max(track2.start-track.start, track3.start-track.start)
-                ph_mit = Pmit(cnt_dist23, d_mit, track2[0].area, track3[0].area)
-                ph_mit *= PTP(track2, ALPHA_MITOSE)*PTP(track3, ALPHA_MITOSE)
+                ph_mit = Pmit(cnt_dist2*cnt_dist3, d_mit)
+                #ph_mit *= PTP(track2, ALPHA_MITOSE)*PTP(track3, ALPHA_MITOSE)
                 
                 hyp.append(f'mit_{track.idx},{track2.idx},{track3.idx}')
                 C.append(Ch)
@@ -264,12 +269,11 @@ def _get_C_pho_matrixes(tracklets, Nf, mitoses=False):
 
 #%% adjust the tracklets to the frames
 
-def _adjust_tracklets(tracklets, hyphotesis):
+def _adjust_tracklets(tracklets, hyphotesis, add_parent=False):
     
     # sort hyphotesis based on the tracklet position
     hyphotesis = sorted(hyphotesis,\
                         key=lambda x:int(x.split('_')[-1].split(',')[0].split('-')[0]))
-    print(hyphotesis)
     
     # make list of tracklets into a dict of their indexes
     tracklets = {int(track.idx):track for track in tracklets}
@@ -289,8 +293,8 @@ def _adjust_tracklets(tracklets, hyphotesis):
                 track = tracklets.pop(int(idx1))
                 track = track.split(int(d_split))
                 track.join(tracklets[int(idx2)])
-                tracklets[int(track.idx)] = track
-                tracklets.pop(int(idx2))
+                track.set_idx(int(idx2))
+                tracklets[int(idx2)] = track
                 
             else:
                 tracklets.pop(int(idxs))
@@ -312,7 +316,9 @@ def _adjust_tracklets(tracklets, hyphotesis):
                 trackc1 = tracklets.pop(int(idx2))
                 
                 trackp, trackc2 = trackp.split_mitoses(int(d_mit))
-                trackc1.parent = trackp
+                if add_parent:
+                    trackc2.parent = trackp
+                    trackc1.parent = trackp
                 
                 trackp.set_idx(int(idx1))
                 trackc1.set_idx(int(idx2))
@@ -324,8 +330,9 @@ def _adjust_tracklets(tracklets, hyphotesis):
                                 
             else:
                 idx1,idx2,idx3 = idxs.split(',')
-                tracklets[int(idx2)].parent = tracklets[int(idx1)]
-                tracklets[int(idx3)].parent = tracklets[int(idx1)]
+                if add_parent:
+                    tracklets[int(idx2)].parent = tracklets[int(idx1)]
+                    tracklets[int(idx3)].parent = tracklets[int(idx1)]
             
     return list(tracklets.values())
 
@@ -390,7 +397,7 @@ def solve_tracklets(tracklets:list, Nf:int, squeeze_factor:float=0.8, max_iterat
         # verify if to stop iterations
         current_track_size = len(adj_tracklets)
         if current_track_size==last_track_size:
-            tracklets = _adjust_tracklets(np.copy(tracklets), hyp)
+            tracklets = np.copy(adj_tracklets)
             if DEBUG: print('Early stop.')
             break
         # update variables for next iterations
@@ -402,7 +409,34 @@ def solve_tracklets(tracklets:list, Nf:int, squeeze_factor:float=0.8, max_iterat
     C, pho, hyp = _get_C_pho_matrixes(np.copy(tracklets), Nf, mitoses=True)
     if len(hyp)>0:
         hyp = _solve_optimization(C, pho, hyp)
-        tracklets = _adjust_tracklets(np.copy(tracklets), hyp)
+        tracklets = _adjust_tracklets(np.copy(tracklets), hyp, add_parent=True)
+    # last_track_size = len(tracklets)
+    # for it in range(max_iterations):
+    #     if DEBUG: print(f'Iteration {it+1}/{max_iterations}:')
+        
+    #     # get hypothesis matrixes
+    #     C, pho, hyp = _get_C_pho_matrixes(np.copy(tracklets), Nf, mitoses=True)
+    #     # print(list(zip(hyp, pho)))
+    #     if len(hyp)==0:
+    #         break
+            
+    #     # solve integer optimization
+    #     hyp = _solve_optimization(C, pho, hyp)
+    #     print([h for h in hyp if 'mit' in h])
+        
+    #     if DEBUG: print('Adjusting final tracklets...')
+    #     adj_tracklets = _adjust_tracklets(np.copy(tracklets), hyp)
+        
+    #     # verify if to stop iterations
+    #     current_track_size = len(adj_tracklets)
+    #     if current_track_size==last_track_size:
+    #         tracklets = _adjust_tracklets(np.copy(tracklets), hyp, add_parent=True)
+    #         if DEBUG: print('Early stop.')
+    #         break
+    #     # update variables for next iterations
+    #     last_track_size = current_track_size
+    #     tracklets = np.copy(adj_tracklets)
+    #     if DEBUG: print()
         
     # set idx values
     tracklets = sorted(tracklets, key=lambda x:x.start)

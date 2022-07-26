@@ -14,7 +14,7 @@ NUM_CORES = multiprocessing.cpu_count()
 
 from .configs import *
 from .classes import *
-from .func_utils import helinger_dist
+from .func_utils import helinger_dist, get_from_hd
 
 #%% NMS algorithm using Helinger Distance
 
@@ -44,8 +44,7 @@ def _compute_NMS(frames):
                 #     continue
                 
                 # compute helinger distance between boxes
-                hd = helinger_dist(d1.cx,d1.cy,d1.a,d1.b,d1.c,\
-                                   d2.cx,d2.cy,d2.a,d2.b,d2.c)
+                hd = helinger_dist(*d1.get_values(), *d2.get_values())
                 
                 if (1-hd)>NMS_TH:
                     # add box to be joined
@@ -90,9 +89,11 @@ def _compute_NMS(frames):
             cx, cy  = mean[0][0], mean[1][0]
             a, b, c = corr[0][0], corr[0][1], corr[1][1]
             
+            cx,cy,w,h,ang = get_from_hd(cx,cy,a,b,c)
+            
             # add detection to frame
-            final_boxes.append(Detection(frame_name,max_score,cx,cy,\
-                                         a=a,b=b,c=c,mit=mit))
+            final_boxes.append(Detection(frame_name,max_score,\
+                                         cx,cy,w,h,ang,mit=mit))
         
         yield final_boxes
 

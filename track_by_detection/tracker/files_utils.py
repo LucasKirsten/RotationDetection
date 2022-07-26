@@ -44,7 +44,7 @@ def _read(path_dets, frame_imgs, threshold, mit, from_crops):
             cy += float(stridey)
             detections.append(Detection(frame,score,cx,cy,w,h,ang,mit=mit))
     else:
-        detections = [Detection(*det,mit=mit) for _,det in detections.iterrows()]
+        detections = [Detection(*det,mit=mit) for _,det in dets.iterrows()]
     
     return detections
 

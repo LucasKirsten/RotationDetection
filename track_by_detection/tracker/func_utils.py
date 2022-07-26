@@ -56,11 +56,12 @@ def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2, shape_weight=1.):
     
     Hd = np.sqrt(1.-Bc+EPS)
     
-    if Hd>1:
-        return 1
+    if Hd>1+2*EPS:
+        raise Exception('Value larger than 1 to Hd')
     elif Hd<0 or np.isnan(Hd):
-        return 0
-    return Hd
+        raise Exception('Value smaller than 0 or nan to Hd')
+    
+    return Hd if Hd<1 else 1.0
 
 @njit
 def get_hd(cx,cy,w,h,angle):
@@ -113,14 +114,13 @@ def Pterm(Xk, total_frames):
 
 def Plink(Xj, Xi, cnt_dist):
     featij = cnt_dist
-    featij *= Xj.end-Xi.start+1
+    featij *= (Xj.end-Xi.start+1)/float(TRANSP_TH)
     
     return np.exp(-np.abs(featij)/LINK_FACTOR)
 
-def Pmit(cnt_dist, d_mit, areaj, areai):
+def Pmit(cnt_dist, d_mit):
     featij = cnt_dist
-    featij *= d_mit + 1
-    featij *= min(areaj/areai, areai/areaj)
+    featij /= (d_mit + 1)/float(MIT_TH)
     return np.exp(-np.abs(featij)/MIT_FACTOR)
 
 

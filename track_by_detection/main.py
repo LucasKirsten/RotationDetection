@@ -53,8 +53,8 @@ final_tracklets = solve_tracklets(tracklets, Nf, max_iterations=100)
 #               final_tracklets, nms_frames)
 
 #%% evaluate using ISBI
-
-ISBI_evaluate(f'./frames/{DATASET}/{LINEAGE}_RES', final_tracklets, Nf)
+    
+# ISBI_evaluate(f'./frames/{DATASET}/{LINEAGE}_RES', final_tracklets, Nf)
 
 #%% evaluate predictions
 
@@ -63,8 +63,8 @@ ISBI_evaluate(f'./frames/{DATASET}/{LINEAGE}_RES', final_tracklets, Nf)
 #     print(MOTA_evaluate(annotations, final_tracklets, Nf, 'center'))
 
 #%% draw trackings
-# frame_imgs = draw_tracklets(final_tracklets, nms_frames, path_imgs, \
-#                             img_format='.tif', plot=True, save_video=False)
+frame_imgs = draw_tracklets(final_tracklets, nms_frames, path_imgs, \
+                            img_format='.tif', save_frames=True)
 
 # if DEBUG: print('Elapsed time with drawing: ', time()-init)
 

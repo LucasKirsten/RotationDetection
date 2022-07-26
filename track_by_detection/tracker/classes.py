@@ -63,9 +63,11 @@ class Detection():
                 self.w, self.h, self.ang = float(w), float(h), float(ang)
                 self.cx,self.cy,self.a,self.b,self.c = \
                     get_hd(self.cx,self.cy,self.w,self.h,self.ang)
+                assert self.a*self.b-self.c**2>=0, 'Error computing HD values'
                     
             elif (w is None) or (h is None) or (ang is None):
                 self.a, self.b, self.c = float(a), float(b), float(c)
+                assert self.a*self.b-self.c**2>=0, 'Error with assigned HD values'
                 self.cx,self.cy,self.w,self.h,self.ang = \
                     get_from_hd(self.cx,self.cy,self.a,self.b,self.c)
             
@@ -75,6 +77,8 @@ class Detection():
         
         else:
             self.w,self.h,self.ang,self.a,self.b,self.c = 0,0,0,0,0,0
+            
+        assert self.a*self.b-self.c**2>=0, 'Error with HD values'
                 
         if self.w is not None and self.h is not None:
             box = cv2.boxPoints(((self.cx,self.cy),(self.w,self.h),self.ang))
@@ -84,6 +88,9 @@ class Detection():
                 
     def __str__(self):
         return str(self.__dict__)
+    
+    def get_values(self):
+        return self.cx,self.cy,self.a,self.b,self.c
     
     def iou(self, det) -> float:
         '''
@@ -225,8 +232,6 @@ class Tracklet():
         
         t1 = Tracklet(self[:d_mit], self.start)
         t2 = Tracklet(self[d_mit:], self.start + d_mit)
-        
-        t2.parent = t1
         
         return t1, t2
     

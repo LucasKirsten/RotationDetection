@@ -39,7 +39,7 @@ if augment:
     def _resize_image(path):
         image = cv2.imread(path, -1)
         # augment image
-        image = cv2.resize(image, (image.shape[1]*4,image.shape[0]*4))
+        image = cv2.resize(image, (image.shape[1]*2,image.shape[0]*2))
         
         cv2.imwrite(path, image)
         
@@ -77,7 +77,7 @@ def _adjust_segmentation(frame, path):
     image = cv2.imread(path, -1)
     # augment image
     if augment:
-        image = cv2.resize(image, (image.shape[1]*4,image.shape[0]*4),interpolation=cv2.INTER_NEAREST)
+        image = cv2.resize(image, (image.shape[1]*2,image.shape[0]*2),interpolation=cv2.INTER_NEAREST)
         cv2.imwrite(path, image)
         
         # augment for tracking
