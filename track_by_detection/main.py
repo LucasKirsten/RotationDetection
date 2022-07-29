@@ -62,6 +62,6 @@ write_results(f'./{DATASET}_results.csv', tracklets, nms_frames)
 
 #%% draw trackings
 # frame_imgs = draw_tracklets(final_tracklets, nms_frames, path_imgs, \
-                            img_format='.tif', save_frames=True)
+#                            img_format='.tif', save_frames=True)
 
 # if DEBUG: print('Elapsed time with drawing: ', time()-init)
