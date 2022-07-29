@@ -40,18 +40,18 @@ def intersection_over_union(cxA,cyA,wA,hA, cxB,cyB,wB,hB):
 EPS = 1e-3
 
 @njit
-def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2, shape_weight=1.):
+def helinger_dist(x1,y1,a1,b1,c1, x2,y2,a2,b2,c2, sw=1., cw=1.):
     
     B1 = (a1+a2)*(y1-y2)**2. + (b1+b2)*(x1-x2)**2.
     B1 += 2.*(c1+c2)*(x2-x1)*(y1-y2)
     B1 /= (a1+a2)*(b1+b2)-(c1+c2)**2+EPS
-    B1 *= 1./4.
+    B1 /= 4.
     
     B2 = (a1+a2)*(b1+b2)-(c1+c2)**2.
     B2 /= 4.*np.sqrt((a1*b1-c1**2.)*(a2*b2-c2**2.))+EPS
     B2 = 1./2.*np.log(B2)
     
-    Bd = B1+shape_weight*B2
+    Bd = cw*B1+sw*B2
     Bc = np.exp(-Bd)
     
     Hd = np.sqrt(1.-Bc+EPS)
@@ -97,31 +97,23 @@ def center_distances(x1,y1, x2,y2):
 
 def PFP(Xk, alpha, start=None, end=None):
     if start is None and end is None:
-        return np.exp(-((1-alpha)/(1-Xk.score()))**len(Xk))
+        return (1-alpha)*(1-Xk.score())**(1/len(Xk))
     else:
-        return np.exp(-((1-alpha)/(1-Xk.slice_score(start,end)))**len(Xk))
+        return (1-alpha)*(1-Xk.slice_score(start,end))**(1/len(Xk))
 
 def PTP(Xk, alpha, start=None, end=None):
     return 1 - PFP(Xk, alpha, start=None, end=None)
 
 def Pini(Xk):
-    dt0 = Xk.start
-    return np.exp(-dt0/INIT_FACTOR)
-
-def Pterm(Xk, total_frames):
-    dt0 = total_frames - Xk.end
-    return np.exp(-dt0/INIT_FACTOR)
+    return np.exp(-Xk.start/INIT_FACTOR)
 
 def Plink(Xj, Xi, cnt_dist):
-    featij = cnt_dist
-    featij *= (Xj.end-Xi.start+1)/float(TRANSP_TH)
-    
-    return np.exp(-np.abs(featij)/LINK_FACTOR)
+    measure = cnt_dist*(Xj.end-Xi.start)
+    return np.exp(-measure/TRANSP_TH)
 
 def Pmit(cnt_dist, d_mit):
-    featij = cnt_dist
-    featij /= (d_mit + 1)/float(MIT_TH)
-    return np.exp(-np.abs(featij)/MIT_FACTOR)
+    measure = cnt_dist*(d_mit+1)
+    return np.exp(-measure/MIT_FACTOR)
 
 
 

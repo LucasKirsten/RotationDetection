@@ -21,8 +21,8 @@ NUM_CORES = multiprocessing.cpu_count()
 #%%
 
 dataset = 'Fluo-N2DL-HeLa'
-lineage = '02'
-augment = True
+lineage = '01'
+augment = False
 
 #%%
 
@@ -47,19 +47,19 @@ if augment:
         _ = parallel(delayed(_resize_image)(path)\
                      for path in tqdm(glob(f'./frames/{dataset}/{lineage}/images/*.tif')))
 
-# for path in path_images:
-#     shutil.copyfile(path, path.replace('TRA\\man_track', 'SEG/man_seg'))
+for path in path_images:
+    shutil.copyfile(path, path.replace('TRA\\man_track', 'SEG/man_seg'))
     
 #%% iterate over tracklets to find mitoses
 
 mitoses = {} # cell idx : frame position
-# for track in tracklets[::-1]:
-#     if track[0] in mitoses:
-#         mitoses[track[0]] = track[-2]
-#     elif track[-1]==0:
-#         continue
-#     else:
-#         mitoses[track[-1]] = -1
+for track in tracklets[::-1]:
+    if track[0] in mitoses:
+        mitoses[track[0]] = track[-2]
+    elif track[-1]==0:
+        continue
+    else:
+        mitoses[track[-1]] = -1
 
 #%%
 os.makedirs(path_res, exist_ok=True)
@@ -107,7 +107,7 @@ def _adjust_segmentation(frame, path):
         box[1::2] = np.clip(box[1::2], 0, image.shape[0])
         
         cell_class = 'normal_cell'
-        if (sval in mitoses) and (frame == mitoses[sval]):
+        if (sval in mitoses) and (mitoses[sval]-3 < frame <= mitoses[sval]):
             cell_class = 'mitoses'
         
         file.write(' '.join(map(lambda x:str(x), box))+f' {cell_class} 0\n')

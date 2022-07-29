@@ -27,7 +27,7 @@ MIT_SCORE_TH = 0.5
 # values to filter tracklets based on the number of detections and score
 # minimun score to validate a tracklet as valid (score for tracklets are the
 # mean score value for all detections in it)
-TRACK_SCORE_TH = 0.9
+TRACK_SCORE_TH = 0.5
 # minimun size of the tracklet to have at least SCORE_TH to be valid
 TRACK_SIZE_TH  = 5
 
@@ -37,10 +37,6 @@ NMS_TH = 0.5
 #%% values to compute the bise et.al algorithm
 
 # thresholds for the tracker
-
-# frames to be consider the initial state
-# higher values means that more cells can be consider as the starters
-INIT_TH = 10
 
 # maximal number of detections to a frame be a possible false positive
 # higher values means that longer tracklets can be consider false positives
@@ -56,16 +52,16 @@ MIT_TH = 3
 
 # distance between cell centers in pixels to consider joining
 # higher values means that cells far appart can be joined in tracklets
-CENTER_TH = 0.5 #int(0.2*max(FRAME_SHAPE))
+CENTER_TH = 0.05*(FRAME_SHAPE[0]**2+FRAME_SHAPE[1]**2)**(1/2)
 
 # distance between cell centers in pixels for mitoses
-CENTER_MIT_TH = 0.6 #int(0.1*max(FRAME_SHAPE))
+CENTER_MIT_TH = 0.05*(FRAME_SHAPE[0]**2+FRAME_SHAPE[1]**2)**(1/2)
 
 # values to adjust the probabilities distributions
 # higher values means larger probabilites
-INIT_FACTOR = INIT_TH
-LINK_FACTOR = 1 #2000
-MIT_FACTOR  = 1 #500
+INIT_FACTOR = 30
+LINK_FACTOR = 1000
+MIT_FACTOR  = 1000
 
 #%% values that were calculated previously
 

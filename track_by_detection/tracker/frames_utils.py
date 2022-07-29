@@ -81,11 +81,8 @@ def _build_costs(frm0, frm1):
         for k in range(costs.shape[1]):
             s0,cx0,cy0,w0,h0,ang0,a0,b0,c0 = frm0[j][:-1] # remove score and mit
             s1,cx1,cy1,w1,h1,ang1,a1,b1,c1 = frm1[k][:-1]
-            # compute helinger distance and IoU
-            hd  = helinger_dist(cx0,cy0,a0,b0,c0, cx1,cy1,a1,b1,c1, 0.5)
-            iou = intersection_over_union(cx0,cy0,w0,h0, cx1,cy1,w1,h1)
-            costs[j,k] = hd \
-                if (iou>0 and s0>TRACK_SCORE_TH and s1>TRACK_SCORE_TH) else 1
+            # compute helinger distance
+            costs[j,k] = helinger_dist(cx0,cy0,a0,b0,c0, cx1,cy1,a1,b1,c1, .5)
     return costs
 
 def get_tracklets(frames:list) -> list:
@@ -133,19 +130,19 @@ def get_tracklets(frames:list) -> list:
         
         # map the detected objects to its pairs
         for row,col in zip(row_ind, col_ind):
-            if costs[row][col]<1:
+            if costs[row][col]<0.8:
                 frm1[col].idx = int(frm0[row].idx)
                 tracklets[frm1[col].idx].append(frm1[col])
             else:
                 frm1[col].idx = int(max(ids) + 1)
-                ids.add(float(max(ids) + 1))
+                ids.add(max(ids) + 1)
                 tracklets.append(Tracklet([frm1[col]], i+1))
         
         # verify if any detection remained with idx==-1
         for det in frm1:
             if int(det.idx) == -1:
                 det.idx = int(max(ids) + 1)
-                ids.add(float(max(ids) + 1))
+                ids.add(max(ids) + 1)
                 tracklets.append(Tracklet([det], i+1))
     
     # sort tracklets based on the first frame they appear

@@ -148,6 +148,7 @@ __pycache__/
 **/*.png
 **/*.JPG
 **/*.PNG
+**/results/*
 
 tools/*/test_dota/*
 tools/*/test_hrsc/*
@@ -159,4 +160,6 @@ tools/*/test_ohd_sjtu/*
 output/summary/*
 dataloader/tfrecord/*
 
+track_by_detection/frames/
+track_by_detection/evaluation/
 !track_by_detection/images/*

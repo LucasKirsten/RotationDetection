@@ -43,14 +43,13 @@ nms_frames = apply_NMS(frames)
 tracklets = get_tracklets(nms_frames)
 
 #%% solve tracklets
-final_tracklets = solve_tracklets(tracklets, Nf, max_iterations=100)
+# final_tracklets = solve_tracklets(tracklets, Nf, max_iterations=1)
 
 # if DEBUG: print('Elapsed time: ', time()-init)
 
 #%% write results in csv file
 
-write_results(f'./frames/{DATASET}/{LINEAGE}_RES/results.csv', \
-              final_tracklets, nms_frames)
+write_results(f'./{DATASET}_results.csv', tracklets, nms_frames)
 
 #%% evaluate using ISBI
 # ISBI_evaluate(f'./frames/{DATASET}/{LINEAGE}_RES', final_tracklets, Nf)
@@ -62,8 +61,7 @@ write_results(f'./frames/{DATASET}/{LINEAGE}_RES/results.csv', \
 #     print(MOTA_evaluate(annotations, final_tracklets, Nf, 'center'))
 
 #%% draw trackings
-frame_imgs = draw_tracklets(final_tracklets, nms_frames, path_imgs, \
+# frame_imgs = draw_tracklets(final_tracklets, nms_frames, path_imgs, \
                             img_format='.tif', save_frames=True)
 
 # if DEBUG: print('Elapsed time with drawing: ', time()-init)
-
