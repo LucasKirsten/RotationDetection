@@ -8,14 +8,17 @@ import numpy as np
 
 from libs.utils import bbox_transform
 from libs.utils.iou_rotate import iou_rotate_calculate2
+from libs.utils.coordinate_convert import coordinate_present_convert
 
+EPS = tf.keras.backend.epsilon()
+PI = 3.14159265359
 
 class Loss(object):
     def __init__(self, cfgs):
         self.cfgs = cfgs
 
     # -------------------------------------- single stage methods---------------------------------------
-    def focal_loss(self, labels, pred, anchor_state, alpha=0.25, gamma=2.0):
+    def focal_loss(self, labels, pred, anchor_state=None, alpha=0.25, gamma=2.0):
 
         # filter out "ignore" anchors
         indices = tf.reshape(tf.where(tf.not_equal(anchor_state, -1)), [-1, ])
@@ -385,3 +388,72 @@ class Loss(object):
         attention_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=mask, logits=featuremap)
         attention_loss = tf.reduce_mean(attention_loss)
         return attention_loss
+    
+    def focal_loss_softmax(self, labels, logits, num_classes, alpha=1.0, gamma=2.0):
+        logits = tf.cast(logits, 'float32')
+        
+        y_pred = tf.nn.softmax(logits, dim=-1) # [batch_size,num_classes]
+        y_pred = tf.clip_by_value(y_pred, EPS, y_pred-EPS)
+        labels = tf.one_hot(labels, depth=num_classes)
+        L = -alpha*labels*((1.0-y_pred)**gamma)*tf.log(y_pred)
+        L = tf.reduce_sum(L, axis=-1)
+        return L
+    
+    ''' ProbIoU '''
+    def probiou(self, preds, target_boxes):
+        
+        # convert boxes 
+        target_boxes_ = tf.py_func(coordinate_present_convert,
+                                   inp=[target_boxes, -1, False],
+                                   Tout=tf.float32)
+        target_boxes_ = tf.reshape(target_boxes, [-1, 5])
+
+        boxes_pred = tf.py_func(coordinate_present_convert,
+                                   inp=[preds, -1, False],
+                                   Tout=tf.float32)
+        boxes_pred = tf.reshape(preds, [-1, 5])
+        
+        # get boxes values
+        x1, y1, w1, h1, theta1 = tf.unstack(boxes_pred, axis=1)
+        x1 = tf.reshape(x1, [-1, 1])
+        y1 = tf.reshape(y1, [-1, 1])
+        h1 = tf.reshape(h1, [-1, 1])
+        w1 = tf.reshape(w1, [-1, 1])
+        theta1 = tf.reshape(theta1, [-1, 1])
+        
+        x2, y2, w2, h2, theta2 = tf.unstack(target_boxes_, axis=1)
+        x2 = tf.reshape(x2, [-1, 1])
+        y2 = tf.reshape(y2, [-1, 1])
+        h2 = tf.reshape(h2, [-1, 1])
+        w2 = tf.reshape(w2, [-1, 1])
+        theta2 = tf.reshape(theta2, [-1, 1])
+        theta1 *= PI / 180.0
+        theta2 *= PI / 180.0
+
+        # convert values to the probIoU
+        aa = w1**2/12; bb = h1**2/12; angles = theta1
+        a1 = aa*tf.math.pow(tf.math.cos(angles), 2.) + bb*tf.math.pow(tf.math.sin(angles), 2.)
+        b1 = aa*tf.math.pow(tf.math.sin(angles), 2.) + bb*tf.math.pow(tf.math.cos(angles), 2.)
+        c1 = 0.5*(aa - bb)*tf.math.sin(2.*angles)
+        
+        aa = w2**2/12; bb = h2**2/12; angles = theta2
+        a2 = aa*tf.math.pow(tf.math.cos(angles), 2.) + bb*tf.math.pow(tf.math.sin(angles), 2.)
+        b2 = aa*tf.math.pow(tf.math.sin(angles), 2.) + bb*tf.math.pow(tf.math.cos(angles), 2.)
+        c2 = 0.5*(aa - bb)*tf.math.sin(2.*angles)
+        
+        # compute probIoU
+        B1 = 1/4.*( (a1+a2)*(y1-y2)**2. + (b1+b2)*(x1-x2)**2. ) + 1/2.*( (c1+c2)*(x2-x1)*(y1-y2) )
+        B1 = B1 / ( (a1+a2)*(b1+b2) - (c1+c2)**2. + EPS )
+
+        sqrt = (a1*b1-c1**2)*(a2*b2-c2**2)
+        sqrt = tf.clip_by_value(sqrt, EPS, tf.reduce_max(sqrt)+EPS)
+        B2 = ( (a1+a2)*(b1+b2) - (c1+c2)**2. )/( 4.*tf.math.sqrt(sqrt) + EPS )
+        B2 = tf.clip_by_value(B2, EPS, tf.reduce_max(B2)+EPS)
+        B2 = 1/2.*tf.math.log(B2)
+
+        Bd = B1 + B2
+        Bd = tf.clip_by_value(Bd, EPS, 100.)
+
+        l1 = tf.math.sqrt(1 - tf.math.exp(-Bd) + EPS)
+
+        return tf.reduce_sum(l1)

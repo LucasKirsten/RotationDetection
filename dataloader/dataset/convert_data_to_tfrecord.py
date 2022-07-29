@@ -19,7 +19,7 @@ tf.app.flags.DEFINE_string('VOC_dir', '/data/dataset/DOTA2.0/crop/trainval/', 'V
 tf.app.flags.DEFINE_string('xml_dir', 'labeltxt', 'xml dir')
 tf.app.flags.DEFINE_string('image_dir', 'images', 'image dir')
 tf.app.flags.DEFINE_string('save_name', 'train', 'save name')
-tf.app.flags.DEFINE_string('save_dir', '/datasets/tfrecord/', 'save name')
+tf.app.flags.DEFINE_string('save_dir', '/workdir/datasets/msc/', 'save name')
 tf.app.flags.DEFINE_string('img_format', '.png', 'format of image')
 tf.app.flags.DEFINE_string('dataset', 'DOTA2.0', 'dataset')
 FLAGS = tf.app.flags.FLAGS
@@ -90,7 +90,7 @@ def convert_pascal_to_tfrecord():
         img_path = image_path + '/' + img_name
 
         if not os.path.exists(img_path):
-            print('{} is not exist!'.format(img_path))
+            #print('{} is not exist!'.format(img_path))
             continue
 
         img_height, img_width, gtbox_label = read_xml_gtbox_and_label(xml)

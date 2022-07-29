@@ -234,6 +234,12 @@ class LabelMap(object):
                 'train': 18,
                 'tv': 19
         }
+            
+        elif self.cfgs.DATASET_NAME == 'UFRGS_CELL':
+            name_label_map = {'normal_cell':1, 'mitoses':2}
+            
+        elif self.cfgs.DATASET_NAME in ('UFRGS_CELL_1class', 'Fluo-N2DH-SIM+'):
+            name_label_map = {'normal_cell':1}
         
         else:
             name_label_map = {}

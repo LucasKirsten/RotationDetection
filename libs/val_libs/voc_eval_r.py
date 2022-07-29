@@ -14,10 +14,15 @@ import pickle
 import numpy as np
 
 from libs.utils import iou_rotate
+from libs.utils.crj_rotated_iou import rotated_iou
 from libs.utils import coordinate_convert
 from utils import tools
 from libs.label_name_dict.label_dict import LabelMap
 
+import sys
+sys.path.append('../../')
+from track_by_detection.tracker.func_utils import get_piou,helinger_dist
+#from track_by_detection.tracker.configs import NORMAL_SCORE_TH,MIT_SCORE_TH
 
 class EVAL(object):
   def __init__(self, cfgs):
@@ -29,7 +34,7 @@ class EVAL(object):
     for cls, cls_ind in self.name_label_map.items():
       if cls == 'back_ground':
         continue
-      print('Writing {} VOC results file'.format(cls))
+      #print('Writing {} VOC results file'.format(cls))
 
       with open(det_save_path, 'wt') as f:
         for im_ind, index in enumerate(test_imgid_list):
@@ -57,7 +62,7 @@ class EVAL(object):
     for cls, cls_id in self.name_label_map.items():
       if cls == 'back_ground':
         continue
-      print("Writing {} VOC resutls file".format(cls))
+      #print("Writing {} VOC resutls file".format(cls))
 
       tools.makedirs(det_save_dir)
       det_save_path = os.path.join(det_save_dir, "det_"+cls+".txt")
@@ -89,15 +94,21 @@ class EVAL(object):
       # obj_struct['difficult'] = int(obj.find('difficult').text)
       obj_struct['difficult'] = 0
       bbox = obj.find('bndbox')
-      rbox = [eval(bbox.find('x1').text), eval(bbox.find('y1').text),
-              eval(bbox.find('x2').text), eval(bbox.find('y2').text),
-              eval(bbox.find('x3').text), eval(bbox.find('y3').text),
-              eval(bbox.find('x4').text), eval(bbox.find('y4').text)]
+      try:
+        rbox = [eval(bbox.find('x1').text), eval(bbox.find('y1').text),
+                eval(bbox.find('x2').text), eval(bbox.find('y2').text),
+                eval(bbox.find('x3').text), eval(bbox.find('y3').text),
+                eval(bbox.find('x4').text), eval(bbox.find('y4').text)]
+      except:
+        rbox = [eval(bbox.find('x0').text), eval(bbox.find('y0').text),
+                eval(bbox.find('x1').text), eval(bbox.find('y1').text),
+                eval(bbox.find('x2').text), eval(bbox.find('y2').text),
+                eval(bbox.find('x3').text), eval(bbox.find('y3').text)]
       rbox = np.array([rbox], np.float32)
       rbox = coordinate_convert.backward_convert(rbox, with_label=False)
       obj_struct['bbox'] = rbox
       objects.append(obj_struct)
-
+    
     return objects
 
 
@@ -147,6 +158,7 @@ class EVAL(object):
     :param use_diff:
     :return:
     '''
+    
     # 1. parse xml to get gtboxes
 
     # read list of images
@@ -162,8 +174,6 @@ class EVAL(object):
     # 2. get gtboxes for this class.
     class_recs = {}
     num_pos = 0
-    # if cls_name == 'person':
-    #   print ("aaa")
     for imagename in imagenames:
       R = [obj for obj in recs[imagename] if obj['name'] == cls_name]
       bbox = np.array([x['bbox'] for x in R])
@@ -198,40 +208,26 @@ class EVAL(object):
       sorted_scores = np.sort(-confidence)
       BB = BB[sorted_ind, :]
       image_ids = [image_ids[x] for x in sorted_ind]  #reorder the img_name
-
+        
       # go down dets and mark TPs and FPs
       for d in range(nd):
         R = class_recs[image_ids[d]]  # img_id is img_name
         bb = BB[d, :].astype(float)
+        #if abs(sorted_scores[d])<NORMAL_SCORE_TH:
+        #  continue
         ovmax = -np.inf
         BBGT = R['bbox'].astype(float)
-
+        
         if BBGT.size > 0:
           # compute overlaps
-          # intersection
-          # ixmin = np.maximum(BBGT[:, 0], bb[0])
-          # iymin = np.maximum(BBGT[:, 1], bb[1])
-          # ixmax = np.minimum(BBGT[:, 2], bb[2])
-          # iymax = np.minimum(BBGT[:, 3], bb[3])
-          # iw = np.maximum(ixmax - ixmin + 1., 0.)
-          # ih = np.maximum(iymax - iymin + 1., 0.)
-          # inters = iw * ih
-          #
-          # # union
-          # uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
-          #        (BBGT[:, 2] - BBGT[:, 0] + 1.) *
-          #        (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
-          #
-          # overlaps = inters / uni
           overlaps = []
           for i in range(len(BBGT)):
-            overlap = iou_rotate.iou_rotate_calculate1(np.array([bb]),
-                                                        BBGT[i],
-                                                        use_gpu=False)[0]
+            overlap = iou_rotate.iou_rotate_calculate2(np.array([bb]), BBGT[i])[0]
+            #overlap = 1. - helinger_dist(*get_piou(*bb), *get_piou(*BBGT[i][0]))
             overlaps.append(overlap)
           ovmax = np.max(overlaps)
           jmax = np.argmax(overlaps)
-
+        
         if ovmax > ovthresh:
           if not R['difficult'][jmax]:
             if not R['det'][jmax]:
@@ -245,6 +241,7 @@ class EVAL(object):
     # 4. get recall, precison and AP
     fp = np.cumsum(fp)
     tp = np.cumsum(tp)
+    #print(f'TP: {tp[-1]}, FP: {fp[-1]}, Total: {num_pos}')
     rec = tp / (float(num_pos) + 1e-6)
     # avoid divide by zero in case the first detection matches a difficult
     # ground truth
@@ -253,11 +250,11 @@ class EVAL(object):
 
     return rec, prec, ap
 
-  def do_python_eval(self, test_imgid_list, test_annotation_path, ovthreshold):
+  def do_python_eval(self, test_imgid_list, test_annotation_path, ovthreshold, verbose):
     # import matplotlib.colors as colors
     # import matplotlib.pyplot as plt
 
-    AP_list = []
+    AP_list,prec_list,recall_list = [],[],[]
     for cls, index in self.name_label_map.items():
       if cls == 'back_ground':
         continue
@@ -268,32 +265,48 @@ class EVAL(object):
                                             annopath=test_annotation_path,
                                             use_07_metric=self.cfgs.USE_07_METRIC,
                                             ovthresh=ovthreshold)
+      
       AP_list += [AP]
-      print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, recall[-1], precision[-1], AP))
-      # print("{}_ap: {}".format(cls, AP))
-      # print("{}_recall: {}".format(cls, recall[-1]))
-      # print("{}_precision: {}".format(cls, precision[-1]))
-      r = np.array(recall)
-      p = np.array(precision)
-      F1 = 2 * r * p / (r + p + 1e-5)
-      max_ind = np.argmax(F1)
-      print('F1:{} P:{} R:{}'.format(F1[max_ind], p[max_ind], r[max_ind]))
+      if len(precision)>0:
+        prec_list += [precision[-1]]
+      else:
+        prec_list += [0.0]
+      
+      if len(recall)>0:
+        recall_list += [recall[-1]]
+      else:
+        recall_list += [0.0]
+      if verbose:
+        print('Threshold: ', ovthreshold)
+        if len(precision)>0 and len(recall)>0:
+          print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, recall[-1], precision[-1], AP))
+        else:
+          print("cls : {}|| Recall: {} || Precison: {}|| AP: {}".format(cls, 0, 0, AP))
+        # print("{}_ap: {}".format(cls, AP))
+        # print("{}_recall: {}".format(cls, recall[-1]))
+        # print("{}_precision: {}".format(cls, precision[-1]))
+        #r = np.array(recall)
+        #p = np.array(precision)
+        #F1 = 2 * r * p / (r + p + 1e-5)
+        #max_ind = np.argmax(F1)
+        #print('F1:{} P:{} R:{}'.format(F1[max_ind], p[max_ind], r[max_ind]))
 
-      # c = colors.cnames.keys()
-      # c_dark = list(filter(lambda x: x.startswith('dark'), c))
-      # c = ['red', 'orange']
-      # plt.axis([0, 1.2, 0, 1])
-      # plt.plot(recall, precision, color=c_dark[index], label=cls)
+        # c = colors.cnames.keys()
+        # c_dark = list(filter(lambda x: x.startswith('dark'), c))
+        # c = ['red', 'orange']
+        # plt.axis([0, 1.2, 0, 1])
+        # plt.plot(recall, precision, color=c_dark[index], label=cls)
 
-    # plt.legend(loc='upper right')
-    # plt.xlabel('R')
-    # plt.ylabel('P')
-    # plt.savefig('./PR_R.png')
+        # plt.legend(loc='upper right')
+        # plt.xlabel('R')
+        # plt.ylabel('P')
+        # plt.savefig('./PR_R.png')
 
-    print("mAP is : {}".format(np.mean(AP_list)))
-    return np.mean(AP_list)
+        print("mAP is : {}".format(np.mean(AP_list)))
+        print('\n')
+    return np.mean(AP_list), np.mean(prec_list), np.mean(recall_list)
 
-  def voc_evaluate_detections(self, all_boxes, test_imgid_list, test_annotation_path):
+  def voc_evaluate_detections(self, all_boxes, test_imgid_list, test_annotation_path, start_th=0.5, step_th=0.05, verbose=True):
     '''
 
     :param all_boxes: is a list. each item reprensent the detections of a img.
@@ -306,12 +319,14 @@ class EVAL(object):
     self.write_voc_results_file(all_boxes, test_imgid_list=test_imgid_list,
                                 det_save_dir=self.cfgs.EVALUATE_R_DIR)
     
-    mAps = []
-    for th in np.arange(0.5,1.0,0.05):
-        print('Threshold: ', th)
-        ap = self.do_python_eval(test_imgid_list, test_annotation_path, ovthreshold=th)
-        mAps.append(ap)
-        print('\n')
-        
-    print('mAP50:95 : ', np.mean(mAps))
-
+    mAps,precisions,recalls = [],[],[]
+    for th in np.arange(start_th,1.0,step_th):
+        ap,prec,rec = self.do_python_eval(test_imgid_list, test_annotation_path, ovthreshold=th, verbose=verbose)
+        mAps.append([th,ap])
+        precisions.append([th,prec])
+        recalls.append([th,rec])
+    
+    if start_th==0.5 and step_th==0.05 and verbose:
+        print('mAP50:95 : ', np.mean([ap for _,ap in mAps]))
+    
+    return mAps,precisions,recalls
