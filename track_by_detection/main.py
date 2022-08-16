@@ -26,7 +26,7 @@ frame_imgs = [file.split('.')[0] for file in os.listdir(path_imgs)]
 # get detections
 detections = read_detections(f'{path_dets}/det_normal_cell.txt', \
                              f'{path_dets}/det_mitoses.txt', frame_imgs,\
-                             from_crops=False)
+                             from_crops=True)
 
 #%% split detections into frames
 frames = get_frames_from_detections(detections, frame_imgs)
@@ -43,16 +43,16 @@ nms_frames = apply_NMS(frames)
 tracklets = get_tracklets(nms_frames)
 
 #%% solve tracklets
-# final_tracklets = solve_tracklets(tracklets, Nf, max_iterations=1)
+final_tracklets = solve_tracklets(tracklets, Nf)
 
-# if DEBUG: print('Elapsed time: ', time()-init)
+if DEBUG: print('Elapsed time: ', time()-init)
 
 #%% write results in csv file
 
-write_results(f'./{DATASET}_results.csv', tracklets, nms_frames)
+# write_results(f'./{DATASET}_results.csv', tracklets, nms_frames)
 
 #%% evaluate using ISBI
-# ISBI_evaluate(f'./frames/{DATASET}/{LINEAGE}_RES', final_tracklets, Nf)
+ISBI_evaluate(f'./frames/{DATASET}/{LINEAGE}_RES', final_tracklets, Nf)
 
 #%% evaluate predictions
 
@@ -62,6 +62,7 @@ write_results(f'./{DATASET}_results.csv', tracklets, nms_frames)
 
 #%% draw trackings
 # frame_imgs = draw_tracklets(final_tracklets, nms_frames, path_imgs, \
-                            img_format='.tif', save_frames=True)
+#                             img_format='.tif', save_frames=True)
 
 # if DEBUG: print('Elapsed time with drawing: ', time()-init)
+

@@ -32,7 +32,10 @@ def _read(path_dets, frame_imgs, threshold, mit, from_crops):
     dets = dets.sort_values(by=0)
     if not from_crops:
         dets = dets.loc[dets.iloc[:,0].isin(frame_imgs)]
+    
+    # filter detections by score
     dets = dets.loc[dets.iloc[:,1]>threshold]
+    
     if from_crops:
         detections = []
         for _,det in dets.iterrows():
@@ -42,6 +45,12 @@ def _read(path_dets, frame_imgs, threshold, mit, from_crops):
                 continue
             cx += float(stridex)
             cy += float(stridey)
+            
+            cx /= 2
+            cy /= 2
+            w /= 2
+            h /= 2
+            
             detections.append(Detection(frame,score,cx,cy,w,h,ang,mit=mit))
     else:
         detections = [Detection(*det,mit=mit) for _,det in dets.iterrows()]

@@ -100,6 +100,7 @@ def get_tracklets(frames:list) -> list:
         Aggregated tracklets from frames detections.
 
     '''
+    
     # add a indexing value for the first frame detections
     for n,det in enumerate(frames[0]):
         det.idx = n
@@ -112,7 +113,8 @@ def get_tracklets(frames:list) -> list:
     # initialize trackelts
     tracklets = [Tracklet(det,0) for det in frames[0]]
     
-    ids = set(range(len(tracklets))) # set of indexes
+    # set of indexes
+    ids = set(range(len(tracklets)))
     
     pbar = range(len(frames)-1)
     if DEBUG:
@@ -130,7 +132,7 @@ def get_tracklets(frames:list) -> list:
         
         # map the detected objects to its pairs
         for row,col in zip(row_ind, col_ind):
-            if costs[row][col]<0.8:
+            if costs[row][col]<0.5:
                 frm1[col].idx = int(frm0[row].idx)
                 tracklets[frm1[col].idx].append(frm1[col])
             else:

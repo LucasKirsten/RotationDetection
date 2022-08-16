@@ -95,27 +95,19 @@ def center_distances(x1,y1, x2,y2):
 
 #%% functions to calculate probabilities
 
-def PFP(Xk, alpha, start=None, end=None):
-    if start is None and end is None:
-        return (1-alpha)*(1-Xk.score())**(1/len(Xk))
-    else:
-        return (1-alpha)*(1-Xk.slice_score(start,end))**(1/len(Xk))
+def PTP(Xk, alpha):
+    return (Xk.score()-MIT_SCORE_TH)*alpha
 
-def PTP(Xk, alpha, start=None, end=None):
-    return 1 - PFP(Xk, alpha, start=None, end=None)
-
-def Pini(Xk):
-    return np.exp(-Xk.start/INIT_FACTOR)
+def PFP(Xk, alpha):
+    return (1-alpha)*(1-Xk.score()+MIT_SCORE_TH)**len(Xk)
 
 def Plink(Xj, Xi, cnt_dist):
-    measure = cnt_dist*(Xj.end-Xi.start)
-    return np.exp(-measure/TRANSP_TH)
+    measure = cnt_dist*(Xi.start-Xj.end)
+    return np.exp(-measure/LINK_FACTOR)
 
 def Pmit(cnt_dist, d_mit):
-    measure = cnt_dist*(d_mit+1)
+    measure = cnt_dist*d_mit
     return np.exp(-measure/MIT_FACTOR)
-
-
 
 
     

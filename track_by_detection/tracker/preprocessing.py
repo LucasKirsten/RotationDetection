@@ -92,8 +92,8 @@ def _compute_NMS(frames):
             cx,cy,w,h,ang = get_from_hd(cx,cy,a,b,c)
             
             # add detection to frame
-            final_boxes.append(Detection(frame_name,max_score,\
-                                         cx,cy,w,h,ang,mit=mit))
+            det = Detection(frame_name,max_score,cx,cy,w,h,ang,mit=mit)
+            final_boxes.append(det)
         
         yield final_boxes
 
@@ -119,6 +119,13 @@ def apply_NMS(frames:list) -> list:
         pbar.set_description('Applying NMS to frames')
     with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
         nms_frames = parallel(delayed(lambda x:x)(x) for x in pbar)
+        
+    # add a indexing value for all detections on frames
+    n = 0
+    for fr in nms_frames:
+        for det in fr:
+            det.idx = n
+            n += 1
         
     return nms_frames
 

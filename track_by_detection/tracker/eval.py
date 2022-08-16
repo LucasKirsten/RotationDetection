@@ -172,3 +172,11 @@ def ISBI_evaluate(path_save:str, tracklets:list, Nf:int) -> None:
     os.system(f'cd evaluation/Win && SEGMeasure.exe ../../frames/{DATASET} {LINEAGE} 3')
     os.system(f'cd evaluation/Win && TRAMeasure.exe ../../frames/{DATASET} {LINEAGE} 3')
             
+    
+    
+    
+    
+    
+    
+    
+    
