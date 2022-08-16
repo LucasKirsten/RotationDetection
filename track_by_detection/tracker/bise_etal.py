@@ -42,9 +42,9 @@ def _make_hypotheses(tracklets, Nf):
         if track.start<INIT_TH:
             Ch = np.zeros(SIZE, dtype='bool')
             Ch[[i==Nx+k for i in range(SIZE)]] = 1
-            ph = Pini(track)*PTP(track, alpha, track.score())
+            ph = Pini(track)#*PTP(track, alpha, track.score())
         
-            hyp.append(f'init_{k}')
+            hyp.append(f'init_{track.idx}')
             C.append(Ch)
             pho.append(ph)
         
@@ -59,31 +59,35 @@ def _make_hypotheses(tracklets, Nf):
         for track2 in tracklets[k+1:]:
             k2 += 1
             
-            if track2.start-track.end>TRANSP_TH:
+            # verify for parenting inconsistency
+            if (track.parent is not None and track2.parent is not None) or \
+                (track.child is not None and track2.child is not None) or \
+                track.child is not None:
                 continue
             
-            if track.start==track2.start or \
-                track.end+len(track2)>Nf or \
-                track.end>=track2.start:
+            # if tracklets begins togheter or is not possible to join
+            if track.start==track2.start or track.end+len(track2)>Nf:
                 continue
             
             # calculate center distances
             cnt_dist = center_distances(track[-1].cx,track[-1].cy, \
                                         track2[0].cx,track2[0].cy)
-            if cnt_dist>CENTER_TH:
-                continue
             
-            # translation hypothesis
-            Ch = np.zeros(SIZE, dtype='bool')
-            Ch[[i==k or i==Nx+k2 for i in range(SIZE)]] = 1
-            Ch[2*Nx+track2.start] = 1
-            ph = Plink(track, track2, cnt_dist)
-            
-            hyp.append(f'transl_{k},{k2}')
-            C.append(Ch)
-            pho.append(ph)
-            
-            term_hyp_prob = max(term_hyp_prob, ph)
+            # verify hyphotesis
+            if track2.start-track.end<TRANSP_TH and \
+                cnt_dist<CENTER_TH and track.end<track2.start:
+                
+                # translation hypothesis
+                Ch = np.zeros(SIZE, dtype='bool')
+                Ch[[i==k or i==Nx+k2 for i in range(SIZE)]] = 1
+                Ch[2*Nx+track2.start] = 1
+                ph = Plink(track, track2, cnt_dist)
+                
+                hyp.append(f'transl_{track.idx},{track2.idx}')
+                C.append(Ch)
+                pho.append(ph)
+                
+                term_hyp_prob = max(term_hyp_prob, ph)
             
             # mitoses hypothesis
             if len(dist_mitoses)>0:
@@ -102,9 +106,9 @@ def _make_hypotheses(tracklets, Nf):
                     Ch = np.zeros(SIZE, dtype='bool')
                     Ch[[i==k or i==Nx+k2 for i in range(SIZE)]] = 1
                     Ch[2*Nx+track2.start] = 1
-                    ph = Pmit(cnt_dist, d_mit)
+                    ph = Pmit(cnt_dist, d_mit, track[d_mit].area, track2[0].area)
                     
-                    hyp.append(f'mit_{k},{k2}')
+                    hyp.append(f'mit_{track.idx},{track2.idx}')
                     C.append(Ch)
                     pho.append(ph)
                     
@@ -115,19 +119,20 @@ def _make_hypotheses(tracklets, Nf):
         Ch[[i==k for i in range(SIZE)]] = 1
         ph = max(1 - term_hyp_prob, Pterm(track, Nf))
         
-        hyp.append(f'term_{k}')
+        hyp.append(f'term_{track.idx}')
         C.append(Ch)
         pho.append(ph)
         
-        # false positive hypothesis
-        if len(track)<FP_TH and term_hyp_prob<0.5:
-            Ch = np.zeros(SIZE, dtype='bool')
-            Ch[[i==k or i==Nx+k for i in range(SIZE)]] = 1
-            ph = PFP(track, alpha, track.score())
+        # # false positive hypothesis
+        # if len(track)<FP_TH and term_hyp_prob<0.5:
+                
+        #     Ch = np.zeros(SIZE, dtype='bool')
+        #     Ch[[i==k or i==Nx+k for i in range(SIZE)]] = 1
+        #     ph = PFP(track, alpha, track.score())
             
-            hyp.append(f'fp_{k}')
-            C.append(Ch)
-            pho.append(ph)
+        #     hyp.append(f'fp_{track.idx}')
+        #     C.append(Ch)
+        #     pho.append(ph)
         
         yield hyp,C,pho
         
@@ -137,8 +142,10 @@ def _make_hypotheses(tracklets, Nf):
 def _get_C_pho_matrixes(tracklets, Nf):
     
     Nx = len(tracklets)
-    pbar = tqdm(range(Nx))
-    pbar.set_description('Bulding hyphotesis matrix: ')
+    pbar = range(Nx)
+    if DEBUG:
+        pbar = tqdm(pbar)
+        pbar.set_description('Bulding hyphotesis matrix: ')
     
     generator = _make_hypotheses(tracklets, Nf)
     hyp,C,pho = [],[],[]
@@ -155,7 +162,7 @@ def _get_C_pho_matrixes(tracklets, Nf):
 
 #%% adjust the tracklets to the frames
 
-@njit(parallel=True)
+#@njit(parallel=True)
 def _build_costs(vals0, vals1):
     # Hungarian algorithm to join tracklets
     
@@ -176,6 +183,9 @@ def _adjust_tracklets(tracklets, hyphotesis, merge_term=False):
     # sort hyphotesis based on the tracklet position
     hyphotesis = sorted(hyphotesis, key=lambda x:int(x.split('_')[-1].split(',')[0]))
     
+    # make list of tracklets into a dict of their indexes
+    tracklets = {track.idx:track for track in tracklets}
+    
     # solve initial tracklets and store the other hyphotesis
     final_tracklets = {}
     transl,mit,term = [],[],[]
@@ -189,6 +199,7 @@ def _adjust_tracklets(tracklets, hyphotesis, merge_term=False):
             transl.append([int(idx1),int(idx2)])
         elif 'mit' in mode:
             idx1,idx2 = idxs.split(',')
+            final_tracklets[int(idx1)] = tracklets[int(idx1)]
             final_tracklets[int(idx2)] = tracklets[int(idx2)]
             mit.append([int(idx1),int(idx2)])
         elif 'term' in mode:
@@ -196,7 +207,9 @@ def _adjust_tracklets(tracklets, hyphotesis, merge_term=False):
             
     # add mitoses tracklets
     for idx1,idx2 in mit:
-        final_tracklets[idx2] = tracklets[idx2]
+        # adjust parenting
+        tracklets[idx1].child  = tracklets[idx2]
+        tracklets[idx2].parent = tracklets[idx1]
             
     # add translation tracklets
     for idx1,idx2 in transl:
@@ -278,7 +291,7 @@ def solve_tracklets(tracklets:list, Nf:int, squeeze_factor:float=0.8, max_iterat
     
     last_track_size = len(tracklets)
     for it in range(max_iterations):
-        print(f'Iteration {it+1}/{max_iterations}:')
+        if DEBUG: print(f'Iteration {it+1}/{max_iterations}:')
         
         # get hypothesis matrixes
         C, pho, hyp = _get_C_pho_matrixes(np.copy(tracklets), Nf)
@@ -289,38 +302,62 @@ def solve_tracklets(tracklets:list, Nf:int, squeeze_factor:float=0.8, max_iterat
         constrains = [(cvxpy.transpose(C) @ x) <= 1]
         total_prob = cvxpy.sum(cvxpy.transpose(pho) @ x)
         
-        print('Solving integer optimization...')
+        if DEBUG: print('Solving integer optimization...')
         knapsack_problem = cvxpy.Problem(cvxpy.Maximize(total_prob), constrains)
         knapsack_problem.solve(solver=cvxpy.GLPK_MI)
         
         # get the true hypothesis
         x = np.squeeze(x.value).astype('int')
         hyp = np.array(hyp)[x==1]
+        print(hyp)
         
-        print('Adjusting final tracklets...')
+        if DEBUG: print('Adjusting final tracklets...')
         adj_tracklets = _adjust_tracklets(np.copy(tracklets), hyp)
         
         # verify if to stop iterations
         current_track_size = len(adj_tracklets)
         if current_track_size==last_track_size:
             tracklets = _adjust_tracklets(np.copy(tracklets), hyp, merge_term=True)
-            print('Early stop.')
+            if DEBUG: print('Early stop.')
             break
         # update variables for next iterations
         last_track_size = current_track_size
         tracklets = np.copy(adj_tracklets)
-        print()
+        if DEBUG: print()
         
         # squeeze the threshold values for the next iteration
-        INIT_TH *= squeeze_factor
-        FP_TH *= squeeze_factor
-        TRANSP_TH *= squeeze_factor
-        CENTER_TH *= squeeze_factor
-        MIT_TH *= squeeze_factor
-        CENTER_MIT_TH *= squeeze_factor
-            
-    return list(tracklets)
-
+        # INIT_TH *= squeeze_factor
+        # FP_TH *= squeeze_factor
+        # TRANSP_TH *= squeeze_factor
+        # CENTER_TH *= squeeze_factor
+        # MIT_TH *= squeeze_factor
+        # CENTER_MIT_TH *= squeeze_factor
+        
+    # remove tracklets below false positive minimum size
+    # tracklets = [t for t in tracklets if t.size>FP_TH]
+    
+    # adjust parenting and mitoses spliting
+    tracklet_idxs = [t.idx for t in tracklets]
+    final_tracklets = []
+    for track in tracklets:
+        # if parent tracklet was removed, remove parenting
+        if (track.parent is not None) and (track.parent.idx not in tracklet_idxs):
+            track.parent = None
+        
+        # if there was a mitoses and both cells continued
+        if not ((track.child is None) or track.child.start>track.end):
+            t1, t2 = track.split_mitose()
+            final_tracklets.append(t1)
+            final_tracklets.append(t2)
+        else:
+            final_tracklets.append(track)
+        
+    # set idx values
+    final_tracklets = sorted(final_tracklets, key=lambda x:x.start)
+    for i,track in enumerate(final_tracklets):
+        track.set_idx(i+1)
+        
+    return [t for t in final_tracklets if len(t)>0]
 
 
 

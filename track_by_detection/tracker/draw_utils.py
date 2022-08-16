@@ -40,13 +40,18 @@ def draw_detections(frames:list, path_imgs:list, img_format:str='.png', \
 
     '''
     
-    pbar = tqdm(frames)
-    pbar.set_description('Reading frames')
+    pbar = frames
+    if DEBUG:
+        pbar = tqdm(pbar)
+        pbar.set_description('Reading frames')
     def _draw_frame(frm):
         # read images and draw the detectors detections
         img_name = frm.name
         img_name = os.path.join(path_imgs, img_name+img_format)
-        img = cv2.imread(img_name)[...,::-1]
+        img = cv2.imread(img_name, -1)
+        img = np.uint8(255*np.float32(img-img.min())/(img.max()-img.min()))
+        if len(img.shape)<3:
+            img = cv2.merge([img]*3)
         draw = np.copy(img)
         
         # iterate over detections to draw in frame
@@ -57,7 +62,7 @@ def draw_detections(frames:list, path_imgs:list, img_format:str='.png', \
             
             color = (0,0,255) if int(mit)==0 else (0,255,0)
             draw = cv2.drawContours(draw, [box], -1, color, 2)
-            
+        
         return draw
         
     with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
@@ -82,7 +87,7 @@ def draw_detections(frames:list, path_imgs:list, img_format:str='.png', \
     return frame_imgs
 
 def draw_tracklets(tracklets:list, frames:list, path_imgs:list, img_format:str='.png', \
-                   plot:bool=False, save_video:bool=False):
+                   plot:bool=False, save_video:bool=False, save_frames:bool=False):
     '''
     Draw tracklets on the Frames.
 
@@ -113,14 +118,18 @@ def draw_tracklets(tracklets:list, frames:list, path_imgs:list, img_format:str='
     total_detections = len(tracklets)
     colors = np.linspace(10,240,total_detections+1,dtype='uint8')[1:]
     np.random.shuffle(colors)
-
-    pbar = tqdm(enumerate(tracklets), total=len(tracklets))
-    pbar.set_description('Drawing tracklets')
+    
+    pbar = enumerate(tracklets)
+    if DEBUG:
+        pbar = tqdm(pbar, total=len(tracklets))
+        pbar.set_description('Drawing tracklets')
     def _draw_track(ti, track):
         nonlocal frame_imgs, colors
         
         start = track.start
-        det_id = track[0].idx
+        det_id = str(track.idx)
+        if track.parent is not None:
+            det_id += f'.{track.parent.idx}'
         
         for di,det in enumerate(track):
             if start+di>=len(frames):
@@ -132,8 +141,8 @@ def draw_tracklets(tracklets:list, frames:list, path_imgs:list, img_format:str='
             
             color = (int(colors[ti]), int(255-colors[ti]), 255)
             frame_imgs[start+di] = cv2.drawContours(frame_imgs[start+di], [box], -1, color, 2)
-            #frame_imgs[start+di] = cv2.putText(frame_imgs[start+di], str(det_id), (int(cx),int(cy)), \
-            #                           cv2.FONT_HERSHEY_SIMPLEX, 1, color, 1, cv2.LINE_AA)
+            frame_imgs[start+di] = cv2.putText(frame_imgs[start+di], det_id, (int(cx),int(cy)), \
+                                       cv2.FONT_HERSHEY_SIMPLEX, 1, color, 1, cv2.LINE_AA)
             #frame_imgs[start+di] = cv2.circle(frame_imgs[start+di], (int(cx),int(cy)), 2, color, 2)
     
     with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
@@ -152,5 +161,11 @@ def draw_tracklets(tracklets:list, frames:list, path_imgs:list, img_format:str='
         for img in frame_imgs:
             out.write(img)
         out.release()
+        
+    if save_frames:
+        path_save = f'./results/{DATASET}_{LINEAGE}_{DETECTOR}'
+        os.makedirs(path_save, exist_ok=True)
+        for i,img in enumerate(frame_imgs):
+            cv2.imwrite(f'{path_save}/t{i}.jpg', img)
         
     return frame_imgs

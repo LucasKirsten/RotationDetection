@@ -10,3 +10,4 @@ joblib
 cvxpy
 "git+https://github.com/cvxgrp/cvxpy.git#egg=cvxpy[glpk]"
 cvxopt
+tifffile
