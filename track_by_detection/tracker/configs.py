@@ -5,18 +5,23 @@ Define global configuration values
 @author: Lucas N. Kirsten (lnkirsten@inf.ufrgs.br)
 """
 
+import os
+
 #%% values to be set by the user
 
 DEBUG = True
 
-DATASET  = 'Fluo-N2DL-HeLa'
+DATASET  = 'Fluo-N2DH-SIM+'
 LINEAGE  = '01'
-FRAME_SHAPE = (700,1100)
-DETECTOR = 'r2cnn_x2'
+FRAME_SHAPE = (690,628)
+DETECTOR = 'r2cnn'
+DIVIDE_PREDS = False
+FROM_CROPS = True
 
-path_imgs = f'./frames/{DATASET}/{LINEAGE}/images'
-path_dets = f'./frames/{DATASET}/{LINEAGE}/{DETECTOR}'
-path_gt   = f'./frames/{DATASET}/{LINEAGE}_GT/TRA'
+path_imgs = f'../../../{DATASET}/{LINEAGE}'
+path_dets = f'../{DATASET}_results'
+path_normal_dets  = os.path.join(path_dets, 'det_normal_cell.txt')
+path_mitoses_dets = os.path.join(path_dets, 'det_mitoses.txt')
 
 # value to filter individual detections based on minimun score
 # for normal detections
@@ -88,6 +93,13 @@ ALPHAS = {
             'r2cnn': (0.7673,0.7673)},
         '02':{
             'r2cnn': (0.6867,0.6867)}
+        },
+    
+    'Fluo-N2DH-SIM+': {
+        '01':{
+            'r2cnn': (0.9430,0.9430)},
+        '02':{
+            'r2cnn': (0.9158,0.9158)}
         },
     }
 

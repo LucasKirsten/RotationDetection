@@ -46,10 +46,11 @@ def _read(path_dets, frame_imgs, threshold, mit, from_crops):
             cx += float(stridex)
             cy += float(stridey)
             
-            cx /= 2
-            cy /= 2
-            w /= 2
-            h /= 2
+            if DIVIDE_PREDS:
+                cx /= 2
+                cy /= 2
+                w /= 2
+                h /= 2
             
             detections.append(Detection(frame,score,cx,cy,w,h,ang,mit=mit))
     else:

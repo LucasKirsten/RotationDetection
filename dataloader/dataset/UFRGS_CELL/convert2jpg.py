@@ -11,12 +11,16 @@ def norm(x):
 
 if __name__=='__main__':
     
-    path_root = sys.argv[-2]
-    extension = sys.argv[-1]
+    path_root = sys.argv[-3]
+    extension = sys.argv[-2]
+    augment   = float(sys.argv[-1])
+    
     path_images = sorted(glob(path_root+'/*'+extension))
     
     mean,std = [],[]
-    for i,path in tqdm(enumerate(path_images), total=len(path_images)):
+    pbar = tqdm(enumerate(path_images), total=len(path_images))
+    pbar.set_description('Converting images to jpg')
+    for i,path in pbar:
         
         if path.endswith('.jpg'):
             continue
@@ -24,12 +28,8 @@ if __name__=='__main__':
         img = cv2.imread(path, -1)
         
         img = norm(img)
-        if i==0:
-            reference = np.copy(img)
-        else:
-            img = exposure.match_histograms(img, reference)
-        #img = exposure.equalize_hist(img)
         img = np.uint8(img)
+        img = cv2.resize(img, (int(img.shape[1]*augment),int(img.shape[0]*augment)))
         
         ext = path.split('.')[-1]
         cv2.imwrite(path.replace(ext, 'jpg'), img)

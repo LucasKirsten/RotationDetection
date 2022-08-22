@@ -21,8 +21,8 @@ from libs.label_name_dict.label_dict import LabelMap
 
 import sys
 sys.path.append('../../')
-from track_by_detection.tracker.func_utils import get_piou,helinger_dist
-#from track_by_detection.tracker.configs import NORMAL_SCORE_TH,MIT_SCORE_TH
+from track_by_detection.tracker.func_utils import get_hd,helinger_dist
+from track_by_detection.tracker.configs import NORMAL_SCORE_TH,MIT_SCORE_TH
 
 class EVAL(object):
   def __init__(self, cfgs):
@@ -213,8 +213,8 @@ class EVAL(object):
       for d in range(nd):
         R = class_recs[image_ids[d]]  # img_id is img_name
         bb = BB[d, :].astype(float)
-        #if abs(sorted_scores[d])<NORMAL_SCORE_TH:
-        #  continue
+        if abs(sorted_scores[d])<NORMAL_SCORE_TH:
+          continue
         ovmax = -np.inf
         BBGT = R['bbox'].astype(float)
         
@@ -222,8 +222,8 @@ class EVAL(object):
           # compute overlaps
           overlaps = []
           for i in range(len(BBGT)):
-            overlap = iou_rotate.iou_rotate_calculate2(np.array([bb]), BBGT[i])[0]
-            #overlap = 1. - helinger_dist(*get_piou(*bb), *get_piou(*BBGT[i][0]))
+            #overlap = iou_rotate.iou_rotate_calculate2(np.array([bb]), BBGT[i])[0]
+            overlap = 1. - helinger_dist(*get_hd(*bb), *get_hd(*BBGT[i][0]))
             overlaps.append(overlap)
           ovmax = np.max(overlaps)
           jmax = np.argmax(overlaps)

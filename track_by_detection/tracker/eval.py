@@ -129,7 +129,7 @@ def MOTA_evaluate(true_tracklets:list, pred_tracklets:list, num_frames:int,\
 
 #%% function to draw and write tracklets evaluation for ISB challenge
 
-def ISBI_evaluate(path_save:str, tracklets:list, Nf:int) -> None:
+def ISBI_evaluate(path_save:str, tracklets:list, Nf:int, evaluate:bool=True) -> None:
     
     os.makedirs(path_save, exist_ok=True)
     frame_dets = [[] for _ in range(Nf)]
@@ -168,9 +168,10 @@ def ISBI_evaluate(path_save:str, tracklets:list, Nf:int) -> None:
     with Parallel(n_jobs=NUM_CORES, prefer='threads') as parallel:
         _ = parallel(delayed(_draw_frames)(i,frame) for i,frame in pbar)
         
-    os.system(f'cd evaluation/Win && DETMeasure.exe ../../frames/{DATASET} {LINEAGE} 3')
-    os.system(f'cd evaluation/Win && SEGMeasure.exe ../../frames/{DATASET} {LINEAGE} 3')
-    os.system(f'cd evaluation/Win && TRAMeasure.exe ../../frames/{DATASET} {LINEAGE} 3')
+    if evaluate:
+        os.system(f'cd evaluation/Linux && ./DETMeasure /workdir/{DATASET} {LINEAGE} 3')
+        os.system(f'cd evaluation/Linux && ./SEGMeasure /workdir/{DATASET} {LINEAGE} 3')
+        os.system(f'cd evaluation/Linux && ./TRAMeasure /workdir/{DATASET} {LINEAGE} 3')
             
     
     
