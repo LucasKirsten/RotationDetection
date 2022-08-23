@@ -44,5 +44,5 @@ final_tracklets = solve_tracklets(tracklets, Nf)
 if DEBUG: print('Elapsed time: ', time()-init)
 
 #%% evaluate using ISBI
-ISBI_evaluate(path_imgs+'_RES', final_tracklets, Nf, evaluate=True)
+ISBI_evaluate(path_imgs+'_RES', final_tracklets, Nf, evaluate=False)
 

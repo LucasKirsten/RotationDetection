@@ -11,12 +11,12 @@ import os
 
 DEBUG = True
 
-DATASET  = 'Fluo-N2DH-SIM+'
+DATASET  = 'PhC-C2DH-U373'
 LINEAGE  = '01'
-FRAME_SHAPE = (690,628)
+FRAME_SHAPE = (520,696)
 DETECTOR = 'r2cnn'
 DIVIDE_PREDS = False
-FROM_CROPS = True
+FROM_CROPS = False
 
 path_imgs = f'../../../{DATASET}/{LINEAGE}'
 path_dets = f'../{DATASET}_results'
@@ -93,13 +93,6 @@ ALPHAS = {
             'r2cnn': (0.7673,0.7673)},
         '02':{
             'r2cnn': (0.6867,0.6867)}
-        },
-    
-    'Fluo-N2DH-SIM+': {
-        '01':{
-            'r2cnn': (0.9430,0.9430)},
-        '02':{
-            'r2cnn': (0.9158,0.9158)}
         },
     }
 
